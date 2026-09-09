@@ -198,3 +198,85 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .ocean-wave, .ocean-current, .ocean-ripples, .ocean-caustics, .ocean-haze, .finance-island, .gull { animation: none; }
 }
+
+
+/* --- Transición hacia el fondo marino --- */
+.archipelago-stage {
+  position: relative;
+  z-index: 1;
+}
+
+
+.depth-transition {
+  position: relative;
+  z-index: 1;
+  height: clamp(420px, 62vh, 760px);
+  pointer-events: none;
+  /* ✅ Este es el punto donde el mar se oscurece */
+}
+
+.seabed-background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: var(--deep-progress, 0);
+  /* Oscurece por ENCIMA del gradiente base, no lo reemplaza */
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    color-mix(in oklab, var(--ocean-deep) 35%, black) 50%,
+    oklch(0.09 0.035 194) 100%);
+  pointer-events: none;
+}
+.seabed-floor {
+  fill: color-mix(in oklab, var(--ocean-deep) 45%, black);
+  opacity: .85;
+}
+.seabed-kelp { position: absolute; border-radius: 3px; transform-origin: bottom center; animation: kelp-sway 6s ease-in-out infinite; opacity: .55; }
+.seabed-bubble { position: absolute; border-radius: 50%; background: color-mix(in oklab, var(--shore) 55%, transparent); opacity: .35; animation: bubble-rise linear infinite; }
+
+@keyframes kelp-sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes bubble-rise { from { transform: translateY(0); opacity: .35; } to { transform: translateY(-420px); opacity: 0; } }
+
+.seabed-charts {
+  position: relative;
+  z-index: 2;
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+  padding-bottom: 90px;
+  opacity: var(--charts-progress, 0);
+  transform: translate3d(0, calc((1 - var(--charts-progress, 0)) * 36px), 0);
+}
+.seabed-title { margin: 0 0 20px; color: var(--shore); font-family: var(--font-display); font-size: clamp(22px, 3vw, 30px); text-align: center; }
+.seabed-charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+
+.module-chart { padding: 20px 22px 18px; border-radius: calc(var(--radius) * 1.4); background: color-mix(in oklab, var(--label) 92%, transparent); box-shadow: 0 14px 34px -18px color-mix(in oklab, black 55%, transparent); color: var(--label-ink); }
+.module-chart-head { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 14px; }
+.module-chart-title { margin: 0; font-family: var(--font-display); font-size: 18px; }
+.module-chart-total { font-variant-numeric: tabular-nums; font-weight: 700; }
+.module-chart-bars { display: flex; flex-direction: column; gap: 10px; }
+.module-chart-row { display: grid; grid-template-columns: 84px 1fr auto; align-items: center; gap: 10px; font-size: 12.5px; }
+.module-chart-track { height: 8px; border-radius: 999px; background: color-mix(in oklab, var(--rock) 14%, transparent); overflow: hidden; }
+.module-chart-fill { display: block; height: 100%; border-radius: 999px; }
+.module-chart-value { font-variant-numeric: tabular-nums; text-align: right; }
+
+@media (prefers-reduced-motion: reduce) {
+  .seabed-bubble, .seabed-kelp { animation: none; }
+  .archipelago-stage, .seabed-background, .seabed-charts { transition: none; }
+}
+
+
+
+.ocean-stage {
+  position: relative;
+  isolation: isolate; /* mantiene el z-index: -1 del ocean-background contenido acá */
+}
+
+.seabed-stage {
+  position: relative;
+  isolation: isolate;
+  /* Continúa el mismo hue que .ocean-background (194), nunca lo cambia */
+  background: linear-gradient(to bottom,
+    var(--ocean-deep) 0%,
+    color-mix(in oklab, var(--ocean-deep) 55%, black) 55%,
+    oklch(0.14 0.04 194) 100%);
+}

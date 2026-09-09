@@ -33,7 +33,7 @@ const BUBBLES = [
       v-for="(k, i) in KELP"
       :key="`kelp-${i}`"
       class="seabed-kelp"
-      :style="`${k.style} background: color-mix(in oklab, var(--ocean-silt) 70%, black);`"
+      :style="`${k.style} background: color-mix(in oklab, var(--ocean-near) 60%, black);`"
     />
     <span
       v-for="(b, i) in BUBBLES"
