@@ -1,0 +1,200 @@
+/*
+ * Design system definition.
+ *
+ * Todas las variables de color usan formato oklch.
+ * Para sumar una institución nueva: agregá su --tint-<clave> acá
+ * y usá esa clave como brandTint en brand-tints.ts.
+ */
+
+:root {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "IBM Plex Sans", Arial, sans-serif;
+  --radius: 0.625rem;
+  --background: oklch(0.93 0.055 194);
+  --foreground: oklch(0.25 0.052 210);
+
+  --sky-top: oklch(0.9 0.055 206);
+  --sky-horizon: oklch(0.91 0.09 63);
+  --ocean-far: oklch(0.75 0.105 194);
+  --ocean-near: oklch(0.65 0.12 190);
+  --ocean-deep: oklch(0.55 0.105 194);
+  --ocean-silt: oklch(0.73 0.055 172);
+  --ocean-glint: oklch(0.93 0.055 187 / 52%);
+  --sand: oklch(0.85 0.11 78);
+  --reef: oklch(0.78 0.08 183 / 70%);
+  --rock: oklch(0.5 0.045 69);
+  --shore: oklch(0.96 0.045 84 / 75%);
+  --label: oklch(0.985 0.012 91 / 92%);
+  --label-ink: oklch(0.24 0.05 210);
+  --tag-coral: oklch(0.72 0.13 35);
+  --tag-teal: oklch(0.58 0.1 183);
+  --tag-sun: oklch(0.76 0.13 84);
+  --tint-default: oklch(0.68 0.09 145);
+  --tint-nu: oklch(0.67 0.055 313);
+  --tint-mercado-pago: oklch(0.7 0.06 231);
+  --tint-revolut: oklch(0.65 0.035 256);
+  --tint-cetes: oklch(0.72 0.08 91);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+@keyframes ocean-drift {
+  from { transform: translate3d(-2%, 0, 0); }
+  to { transform: translate3d(2%, 4px, 0); }
+}
+
+@keyframes current-flow {
+  0% { transform: translate3d(-7%, 0, 0) scaleX(1.08); }
+  50% { transform: translate3d(1%, 8px, 0) scaleX(.98); }
+  100% { transform: translate3d(7%, -3px, 0) scaleX(1.08); }
+}
+
+@keyframes water-shimmer {
+  0% { transform: translate3d(-4%, -1%, 0); opacity: .18; }
+  50% { opacity: .34; }
+  100% { transform: translate3d(4%, 2%, 0); opacity: .2; }
+}
+
+@keyframes silt-breathe {
+  0%, 100% { transform: translate3d(-2%, 0, 0) scale(1); opacity: .16; }
+  50% { transform: translate3d(2%, -7px, 0) scale(1.05); opacity: .25; }
+}
+
+@keyframes island-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes gull-drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(7px); }
+}
+
+.finance-scene {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  color: var(--foreground);
+  background: var(--sky-top);
+}
+
+.ocean-background {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: linear-gradient(to bottom, var(--sky-top) 0%, var(--sky-horizon) 39%, var(--ocean-far) 40%, color-mix(in oklab, var(--ocean-near) 88%, var(--ocean-silt)) 72%, var(--ocean-deep) 100%);
+}
+
+.ocean-horizon {
+  position: absolute;
+  top: 39.5%;
+  width: 100%;
+  height: 2px;
+  background: color-mix(in oklab, var(--shore) 65%, transparent);
+}
+
+.ocean-wave { position: absolute; left: -5%; width: 110%; fill: var(--ocean-far); animation: ocean-drift 13s ease-in-out infinite alternate; }
+.ocean-wave--far { top: 38%; height: 17%; opacity: .72; }
+.ocean-wave--near { top: 49%; height: 22%; fill: var(--ocean-deep); opacity: .25; animation-duration: 17s; animation-direction: alternate-reverse; }
+.ocean-current { position: absolute; left: -9%; width: 118%; overflow: visible; fill: none; stroke: var(--ocean-glint); stroke-width: 2; stroke-linecap: round; opacity: .42; animation: current-flow 16s ease-in-out infinite alternate; }
+.ocean-current path:nth-child(2) { opacity: .46; stroke-width: 1.25; }
+.ocean-current--one { top: 48%; height: 22%; }
+.ocean-current--two { top: 68%; height: 26%; opacity: .25; animation-duration: 23s; animation-direction: alternate-reverse; }
+.ocean-ripples { position: absolute; inset: 51% -5% 0; opacity: .2; background-image: repeating-linear-gradient(174deg, transparent 0 28px, var(--shore) 29px 30px, transparent 31px 56px); background-size: 100% 120px; animation: ocean-drift 20s ease-in-out infinite alternate-reverse; }
+.ocean-caustics { position: absolute; inset: 47% -8% -8%; opacity: .22; background-image: radial-gradient(ellipse at 18% 18%, transparent 0 34%, var(--ocean-glint) 35% 36%, transparent 37% 100%), radial-gradient(ellipse at 73% 44%, transparent 0 38%, var(--ocean-glint) 39% 40%, transparent 41% 100%); background-size: 330px 150px, 440px 190px; animation: water-shimmer 12s ease-in-out infinite alternate; mix-blend-mode: soft-light; }
+.ocean-haze { position: absolute; inset: 43% -5% -5%; background: radial-gradient(ellipse at 24% 22%, var(--ocean-silt), transparent 36%), radial-gradient(ellipse at 76% 56%, color-mix(in oklab, var(--ocean-silt) 70%, transparent), transparent 43%); filter: blur(28px); animation: silt-breathe 18s ease-in-out infinite; mix-blend-mode: soft-light; pointer-events: none; }
+
+.gull { position: absolute; width: 38px; fill: none; stroke: var(--label-ink); stroke-width: 2; stroke-linecap: round; opacity: .32; animation: gull-drift 18s ease-in-out infinite; }
+.gull--one { top: 16%; left: 13%; }
+.gull--two { top: 24%; right: 19%; width: 25px; animation-delay: -6s; }
+.gull--three { top: 12%; right: 34%; width: 18px; animation-delay: -11s; opacity: .22; }
+
+.finance-header { display: flex; align-items: center; justify-content: space-between; width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding-top: 24px; }
+.finance-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--foreground); font-family: var(--font-display); font-size: 18px; font-weight: 700; text-decoration: none; }
+.finance-brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid color-mix(in oklab, var(--foreground) 28%, transparent); border-radius: 50%; color: var(--ocean-deep); }
+.profile-button { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid color-mix(in oklab, var(--foreground) 25%, transparent); border-radius: 50%; color: var(--foreground); background: color-mix(in oklab, var(--label) 55%, transparent); font: 600 12px var(--font-sans); cursor: pointer; }
+.profile-button:focus-visible, .finance-brand:focus-visible, .finance-island:focus-visible { outline: 3px solid var(--tag-coral); outline-offset: 4px; }
+
+.finance-summary { position: relative; z-index: 2; width: min(720px, calc(100% - 32px)); margin: 34px auto 0; text-align: center; }
+.finance-summary > p:first-child { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
+.finance-summary h1 { margin: 0; font-family: var(--font-display); font-size: clamp(48px, 6vw, 80px); line-height: .98; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.finance-summary h1 span { font-size: .5em; opacity: .55; }
+.finance-summary-note { margin: 12px 0 0; font-size: 14px; opacity: .72; }
+
+.archipelago-map { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(var(--cluster-count, 3), minmax(0, 1fr)); align-items: end; gap: clamp(12px, 3vw, 54px); width: min(1180px, calc(100% - 40px)); min-height: 470px; margin: -22px auto 0; padding: 68px 0 54px; }
+.archipelago-map--3 { --cluster-count: 3; }
+.module-cluster { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 0; }
+.module-cluster:nth-child(2) { align-self: start; margin-top: 70px; }
+.module-tag { position: relative; z-index: 4; margin: 0 0 12px; padding: 7px 13px; border-radius: 999px; color: var(--label-ink); background: var(--label); box-shadow: 0 2px 0 color-mix(in oklab, var(--foreground) 10%, transparent); font-size: clamp(11px, 1.15vw, 14px); font-weight: 600; text-align: center; }
+.module-tag::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--module-accent); }
+.module-tag--coral { --module-accent: var(--tag-coral); }
+.module-tag--teal { --module-accent: var(--tag-teal); }
+.module-tag--sun { --module-accent: var(--tag-sun); }
+
+.module-reef { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; width: 100%; min-height: 210px; padding: 12px 4px 0; background: radial-gradient(ellipse at center 58%, color-mix(in oklab, var(--reef) 64%, transparent) 0 31%, color-mix(in oklab, var(--reef) 26%, transparent) 45%, transparent 68%); }
+.finance-island { width: min(170px, 48%); margin: -5px -7px 7px; outline: none; animation: island-bob 7s ease-in-out infinite; animation-delay: var(--island-delay); }
+.finance-island:nth-child(even) { margin-top: 45px; }
+.finance-island--compact { width: 33%; margin-inline: 0; }
+.finance-island svg { display: block; width: 100%; overflow: visible; filter: drop-shadow(0 9px 6px color-mix(in oklab, var(--ocean-deep) 19%, transparent)); }
+.finance-island figcaption { width: fit-content; max-width: 90%; margin: -2px auto 0; padding: 4px 9px; overflow: hidden; border-radius: 999px; color: var(--label-ink); background: var(--label); box-shadow: 0 1px 0 color-mix(in oklab, var(--foreground) 12%, transparent); font-size: 11px; font-weight: 600; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.island-waterline { fill: none; stroke-linejoin: bevel; }
+.island-waterline--outer { stroke: color-mix(in oklab, var(--reef) 72%, transparent); stroke-width: 7; opacity: .62; }
+.island-waterline--inner { stroke: color-mix(in oklab, var(--shore) 76%, transparent); stroke-width: 2; opacity: .76; }
+.island-sand { fill: color-mix(in oklab, var(--sand) 90%, var(--label)); stroke: color-mix(in oklab, var(--rock) 34%, var(--sand)); stroke-width: 1.4; stroke-linejoin: bevel; }
+.island-land { stroke: color-mix(in oklab, var(--rock) 25%, transparent); stroke-width: 1.1; stroke-linejoin: bevel; }
+.island-land--default { fill: color-mix(in oklab, var(--tint-default) 76%, var(--sand)); }
+.island-land--nu { fill: color-mix(in oklab, var(--tint-nu) 18%, var(--tint-default)); }
+.island-land--mercado-pago { fill: color-mix(in oklab, var(--tint-mercado-pago) 20%, var(--tint-default)); }
+.island-land--revolut { fill: color-mix(in oklab, var(--tint-revolut) 17%, var(--tint-default)); }
+.island-land--cetes { fill: color-mix(in oklab, var(--tint-cetes) 24%, var(--tint-default)); }
+.island-shore { fill: none; stroke: var(--shore); stroke-width: 1.8; stroke-linecap: round; opacity: .72; }
+.island-contour { fill: none; stroke: color-mix(in oklab, var(--rock) 43%, transparent); stroke-linecap: round; stroke-linejoin: round; }
+.island-contour--one { stroke-width: 1.15; opacity: .66; }
+.island-contour--two { stroke-width: 1; opacity: .5; }
+.island-contour--three { stroke-width: .85; opacity: .4; }
+.island-hatch { fill: none; stroke: color-mix(in oklab, var(--rock) 34%, transparent); stroke-width: .8; stroke-linecap: round; opacity: .46; }
+.island-cliff { fill: var(--rock); opacity: .78; }
+.island-rock { fill: var(--rock); opacity: .66; }
+.island-pebble { fill: color-mix(in oklab, var(--rock) 68%, var(--sand)); opacity: .72; }
+.island-palm { fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: .86; }
+.palm-shadow { stroke: color-mix(in oklab, var(--rock) 28%, transparent); stroke-width: 3; opacity: .5; }
+.palm-trunk { stroke: color-mix(in oklab, var(--rock) 88%, var(--label-ink)); stroke-width: 2.6; }
+.palm-trunk-detail { stroke: color-mix(in oklab, var(--sand) 52%, var(--rock)); stroke-width: .8; }
+.palm-frond { stroke: color-mix(in oklab, var(--label-ink) 68%, var(--tint-default)); stroke-width: 2.1; }
+.palm-leaflets { stroke: color-mix(in oklab, var(--label-ink) 50%, var(--tint-default)); stroke-width: .8; opacity: .8; }
+.palm-crown { fill: var(--rock); stroke: none; }
+.scene-footer { position: absolute; right: 24px; bottom: 18px; left: 24px; display: flex; justify-content: center; gap: 9px; font-size: 11px; opacity: .65; }
+
+@media (max-width: 760px) {
+  .finance-header { width: calc(100% - 32px); padding-top: 18px; }
+  .finance-summary { margin-top: 26px; }
+  .finance-summary h1 { font-size: clamp(42px, 14vw, 62px); }
+  .finance-summary-note { max-width: 290px; margin-inline: auto; }
+  .ocean-horizon { top: 33%; }
+  .ocean-wave--far { top: 32%; }
+  .ocean-wave--near { top: 43%; }
+  .ocean-ripples { inset-block-start: 44%; }
+  .archipelago-map { grid-template-columns: 1fr; align-items: initial; gap: 12px; width: min(520px, calc(100% - 24px)); min-height: auto; margin-top: 0; padding: 48px 0 74px; }
+  .module-cluster, .module-cluster:nth-child(2) { align-self: auto; margin-top: 0; }
+  .module-reef { min-height: 155px; padding-inline: 20px; }
+  .finance-island { width: min(150px, 45%); }
+  .finance-island--compact { width: 30%; }
+  .finance-island:nth-child(even) { margin-top: 28px; }
+  .gull--one { left: 7%; }
+  .gull--three { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ocean-wave, .ocean-current, .ocean-ripples, .ocean-caustics, .ocean-haze, .finance-island, .gull { animation: none; }
+}
