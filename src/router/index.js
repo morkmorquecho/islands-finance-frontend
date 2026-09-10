@@ -7,7 +7,6 @@ const routes = [
     path:'/',
     name:'home',
     component:() => import('@/views/home/HomeView.vue'),
-    meta: { guestOnly: true },
   },
   {
     path: '/login',
@@ -38,12 +37,7 @@ const routes = [
     component: () => import('@/views/auth/ResetPasswordConfirmView.vue'),
     meta: { guestOnly: true },
   },
-  {
-    path: '/',
-    name: 'dashboard',
-    component: () => import('@/views/DashboardView.vue'),
-    meta: { requiresAuth: true },
-  },
+
   {
     path: '/modules/:id',
     name: 'module-detail',
@@ -84,7 +78,7 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.guestOnly && auth.isAuthenticated) {
-    return { name: 'dashboard' }
+    return { name: 'home' }
   }
 })
 
