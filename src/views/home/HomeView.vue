@@ -121,8 +121,10 @@ onUnmounted(() => {
 
       <header class="finance-header">
         <RouterLink class="finance-brand" to="/" aria-label="Island Finance, inicio">
-          <span class="finance-brand-mark" aria-hidden="true">◒</span>
-          Island Finance
+          <span class="card-icon">
+            <img src="@/assets/logo.png" alt="" aria-hidden="true" />
+          </span>
+                  Island Finance
         </RouterLink>
         <button class="profile-button" type="button" aria-label="Abrir perfil">MM</button>
       </header>
