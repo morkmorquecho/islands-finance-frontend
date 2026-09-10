@@ -1,74 +1,151 @@
-<script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import authService from '@/services/auth.service'
+<!-- src/views/RegisterView.vue -->
+<script setup lang="ts">
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import authService from "@/services/auth.service";
+import AuthShell from "@/components/auth/AuthShell.vue";
+import AuthIntro from "@/components/auth/AuthIntro.vue";
+import AuthCard from "@/components/auth/AuthCard.vue";
+import AuthField from "@/components/auth/AuthField.vue";
 
-const router = useRouter()
-const form = ref({ username: '', email: '', password: '', confirm_password: '' })
-const errorMsg = ref('')
-const successMsg = ref('')
-const loading = ref(false)
+const router = useRouter();
+
+const form = ref({
+  username: "",
+  email: "",
+  password: "",
+  confirm_password: "",
+});
+
+const errorMsg = ref("");
+const successMsg = ref("");
+const loading = ref(false);
+const showPassword = ref(false);
+const showConfirm = ref(false);
+
+const passwordsMatch = computed(
+  () => form.value.password === form.value.confirm_password
+);
 
 async function handleSubmit() {
-  errorMsg.value = ''
-  successMsg.value = ''
-  loading.value = true
+  errorMsg.value = "";
+  successMsg.value = "";
+
+  if (!passwordsMatch.value) {
+    errorMsg.value = "Las contraseñas no coinciden.";
+    return;
+  }
+
+  loading.value = true;
   try {
-    await authService.register(form.value)
-    successMsg.value = 'Cuenta creada. Revisa tu correo para verificarla.'
-    setTimeout(() => router.push({ name: 'login' }), 2000)
+    await authService.register(form.value);
+    successMsg.value = "Cuenta creada. Revisa tu correo para verificarla.";
+    setTimeout(() => router.push({ name: "login" }), 2000);
   } catch (err) {
-    errorMsg.value = err.message
+    errorMsg.value =
+      err instanceof Error
+        ? err.message
+        : "No pudimos crear tu cuenta. Intenta nuevamente.";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 </script>
 
 <template>
-  <div class="auth-page">
-    <form class="auth-form" @submit.prevent="handleSubmit">
-      <h1>Crear cuenta</h1>
+  <AuthShell title="Tu horizonte financiero">
+    <AuthIntro
+      eyebrow="Empieza tu travesía"
+      title="Construye tu"
+      highlight="isla financiera."
+      copy="Crea tu cuenta y empieza a mapear cada ingreso, meta y logro en un solo horizonte."
+    />
 
-      <label>
-        Usuario
-        <input v-model="form.username" type="text" required />
-      </label>
+    <AuthCard
+      kicker="Nuevo navegante"
+      heading="Crear cuenta"
+      @submit="handleSubmit"
+    >
+      <AuthField id="username" label="Usuario" icon="@">
+        <input
+          id="username"
+          v-model="form.username"
+          type="text"
+          required
+          autocomplete="username"
+          placeholder="Tu nombre de usuario"
+        />
+      </AuthField>
 
-      <label>
-        Correo
-        <input v-model="form.email" type="email" required />
-      </label>
+      <AuthField id="email" label="Correo" icon="✉">
+        <input
+          id="email"
+          v-model="form.email"
+          type="email"
+          required
+          autocomplete="email"
+          placeholder="tu@correo.com"
+        />
+      </AuthField>
 
-      <label>
-        Contraseña
-        <input v-model="form.password" type="password" required />
-      </label>
+      <AuthField id="password" label="Contraseña" icon="●">
+        <input
+          id="password"
+          v-model="form.password"
+          :type="showPassword ? 'text' : 'password'"
+          required
+          autocomplete="new-password"
+          placeholder="Crea una contraseña"
+        />
+        <button
+          class="password-toggle"
+          type="button"
+          :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+          :aria-pressed="showPassword"
+          @click="showPassword = !showPassword"
+        >
+          {{ showPassword ? "Ocultar" : "Mostrar" }}
+        </button>
+      </AuthField>
 
-      <label>
-        Confirmar contraseña
-        <input v-model="form.confirm_password" type="password" required />
-      </label>
+      <AuthField id="confirm_password" label="Confirmar contraseña" icon="●">
+        <input
+          id="confirm_password"
+          v-model="form.confirm_password"
+          :type="showConfirm ? 'text' : 'password'"
+          required
+          autocomplete="new-password"
+          placeholder="Repite tu contraseña"
+        />
+        <button
+          class="password-toggle"
+          type="button"
+          :aria-label="showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+          :aria-pressed="showConfirm"
+          @click="showConfirm = !showConfirm"
+        >
+          {{ showConfirm ? "Ocultar" : "Mostrar" }}
+        </button>
+      </AuthField>
 
-      <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
-      <p v-if="successMsg" class="success">{{ successMsg }}</p>
+      <p v-if="errorMsg" class="error-message" role="alert">
+        {{ errorMsg }}
+      </p>
+      <p v-if="successMsg" class="success-message" role="status">
+        {{ successMsg }}
+      </p>
 
-      <button type="submit" :disabled="loading">
-        {{ loading ? 'Creando...' : 'Registrarme' }}
+      <button class="submit-button" type="submit" :disabled="loading">
+        <span>
+          {{ loading ? "Creando tu isla..." : "Registrarme" }}
+        </span>
+        <span aria-hidden="true">→</span>
       </button>
 
-      <router-link :to="{ name: 'login' }">Ya tengo cuenta</router-link>
-    </form>
-  </div>
+      <p class="register-copy">
+        ¿Ya tienes una cuenta?
+        <RouterLink :to="{ name: 'login' }">Inicia sesión</RouterLink>
+      </p>
+    </AuthCard>
+  </AuthShell>
 </template>
-
-<style scoped>
-.auth-page { display: flex; justify-content: center; padding: 4rem 1rem; }
-.auth-form { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 360px; }
-label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.9rem; }
-input { padding: 0.5rem; border: 1px solid #ccc; border-radius: 6px; }
-button { padding: 0.6rem; border: none; border-radius: 6px; background: #0f5c73; color: #fff; cursor: pointer; }
-button:disabled { opacity: 0.6; cursor: not-allowed; }
-.error { color: #c0392b; font-size: 0.85rem; }
-.success { color: #1f8a4c; font-size: 0.85rem; }
-</style>

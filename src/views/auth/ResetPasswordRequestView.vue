@@ -1,52 +1,100 @@
-<script setup>
-import { ref } from 'vue'
-import authService from '@/services/auth.service'
+<!-- src/views/ResetPasswordRequestView.vue -->
+<script setup lang="ts">
+import { ref } from "vue";
+import authService from "@/services/auth.service";
+import AuthShell from "@/components/auth/AuthShell.vue";
+import AuthIntro from "@/components/auth/AuthIntro.vue";
+import AuthCard from "@/components/auth/AuthCard.vue";
+import AuthField from "@/components/auth/AuthField.vue";
 
-const email = ref('')
-const sent = ref(false)
-const errorMsg = ref('')
-const loading = ref(false)
+const email = ref("");
+const sent = ref(false);
+const errorMsg = ref("");
+const loading = ref(false);
 
 async function handleSubmit() {
-  errorMsg.value = ''
-  loading.value = true
+  errorMsg.value = "";
+  loading.value = true;
   try {
-    await authService.requestPasswordReset(email.value)
-    sent.value = true
+    await authService.requestPasswordReset(email.value);
+    sent.value = true;
   } catch (err) {
-    errorMsg.value = err.message
+    errorMsg.value =
+      err instanceof Error
+        ? err.message
+        : "No pudimos enviar las instrucciones. Intenta nuevamente.";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
+}
+
+function resetForm() {
+  sent.value = false;
+  email.value = "";
+  errorMsg.value = "";
 }
 </script>
 
 <template>
-  <div class="auth-page">
-    <form v-if="!sent" class="auth-form" @submit.prevent="handleSubmit">
-      <h1>Restablecer contraseña</h1>
+  <AuthShell title="Tu horizonte financiero">
+    <AuthIntro
+      eyebrow="Recupera tu rumbo"
+      title="Retoma el timón de"
+      highlight="tu cuenta."
+      copy="Ingresa tu correo y te enviaremos las instrucciones para volver a tu isla financiera."
+    />
 
-      <label>
-        Correo
-        <input v-model="email" type="email" required />
-      </label>
+    <AuthCard
+      kicker="Recuperación"
+      heading="Restablecer contraseña"
+      @submit="handleSubmit"
+    >
+      <!-- Estado: enviado -->
+      <template v-if="sent">
+        <p class="success-message" role="status">
+          Si el correo <strong>{{ email }}</strong> está registrado, recibirás
+          las instrucciones en unos minutos.
+        </p>
 
-      <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
+        <button
+          class="submit-button"
+          type="button"
+          @click="resetForm"
+        >
+          <span>Usar otro correo</span>
+          <span aria-hidden="true">←</span>
+        </button>
+      </template>
 
-      <button type="submit" :disabled="loading">
-        {{ loading ? 'Enviando...' : 'Enviar instrucciones' }}
-      </button>
-    </form>
+      <!-- Estado: formulario -->
+      <template v-else>
+        <AuthField id="email" label="Correo" icon="✉">
+          <input
+            id="email"
+            v-model="email"
+            type="email"
+            required
+            autocomplete="email"
+            placeholder="tu@correo.com"
+          />
+        </AuthField>
 
-    <p v-else>Si el correo existe, recibirás instrucciones para continuar.</p>
-  </div>
+        <p v-if="errorMsg" class="error-message" role="alert">
+          {{ errorMsg }}
+        </p>
+
+        <button class="submit-button" type="submit" :disabled="loading">
+          <span>
+            {{ loading ? "Enviando..." : "Enviar instrucciones" }}
+          </span>
+          <span aria-hidden="true">→</span>
+        </button>
+      </template>
+
+      <p class="register-copy">
+        ¿Recordaste tu contraseña?
+        <RouterLink :to="{ name: 'login' }">Volver al inicio de sesión</RouterLink>
+      </p>
+    </AuthCard>
+  </AuthShell>
 </template>
-
-<style scoped>
-.auth-page { display: flex; justify-content: center; padding: 4rem 1rem; text-align: center; }
-.auth-form { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 360px; text-align: left; }
-label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.9rem; }
-input { padding: 0.5rem; border: 1px solid #ccc; border-radius: 6px; }
-button { padding: 0.6rem; border: none; border-radius: 6px; background: #0f5c73; color: #fff; cursor: pointer; }
-.error { color: #c0392b; font-size: 0.85rem; }
-</style>
