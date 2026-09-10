@@ -23,3 +23,75 @@
     <div class="ocean-haze" />
   </div>
 </template>
+
+<style scoped>
+.ocean-background {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: linear-gradient(to bottom, var(--sky-top) 0%, var(--sky-horizon) 39%, var(--ocean-far) 40%, color-mix(in oklab, var(--ocean-near) 88%, var(--ocean-silt)) 72%, var(--ocean-deep) 100%);
+}
+
+.ocean-horizon {
+  position: absolute;
+  top: 39.5%;
+  width: 100%;
+  height: 2px;
+  background: color-mix(in oklab, var(--shore) 65%, transparent);
+}
+
+.ocean-wave { position: absolute; left: -5%; width: 110%; fill: var(--ocean-far); animation: ocean-drift 13s ease-in-out infinite alternate; }
+.ocean-wave--far { top: 38%; height: 17%; opacity: .72; }
+.ocean-wave--near { top: 49%; height: 22%; fill: var(--ocean-deep); opacity: .25; animation-duration: 17s; animation-direction: alternate-reverse; }
+
+.ocean-current { position: absolute; left: -9%; width: 118%; overflow: visible; fill: none; stroke: var(--ocean-glint); stroke-width: 2; stroke-linecap: round; opacity: .42; animation: current-flow 16s ease-in-out infinite alternate; }
+.ocean-current path:nth-child(2) { opacity: .46; stroke-width: 1.25; }
+.ocean-current--one { top: 48%; height: 22%; }
+.ocean-current--two { top: 68%; height: 26%; opacity: .25; animation-duration: 23s; animation-direction: alternate-reverse; }
+
+.ocean-ripples { position: absolute; inset: 51% -5% 0; opacity: .2; background-image: repeating-linear-gradient(174deg, transparent 0 28px, var(--shore) 29px 30px, transparent 31px 56px); background-size: 100% 120px; animation: ocean-drift 20s ease-in-out infinite alternate-reverse; }
+.ocean-caustics { position: absolute; inset: 47% -8% -8%; opacity: .22; background-image: radial-gradient(ellipse at 18% 18%, transparent 0 34%, var(--ocean-glint) 35% 36%, transparent 37% 100%), radial-gradient(ellipse at 73% 44%, transparent 0 38%, var(--ocean-glint) 39% 40%, transparent 41% 100%); background-size: 330px 150px, 440px 190px; animation: water-shimmer 12s ease-in-out infinite alternate; mix-blend-mode: soft-light; }
+.ocean-haze { position: absolute; inset: 43% -5% -5%; background: radial-gradient(ellipse at 24% 22%, var(--ocean-silt), transparent 36%), radial-gradient(ellipse at 76% 56%, color-mix(in oklab, var(--ocean-silt) 70%, transparent), transparent 43%); filter: blur(28px); animation: silt-breathe 18s ease-in-out infinite; mix-blend-mode: soft-light; pointer-events: none; }
+
+.gull { position: absolute; width: 38px; fill: none; stroke: var(--label-ink); stroke-width: 2; stroke-linecap: round; opacity: .32; animation: gull-drift 18s ease-in-out infinite; }
+.gull--one { top: 16%; left: 13%; }
+.gull--two { top: 24%; right: 19%; width: 25px; animation-delay: -6s; }
+.gull--three { top: 12%; right: 34%; width: 18px; animation-delay: -11s; opacity: .22; }
+
+@keyframes ocean-drift {
+  from { transform: translate3d(-2%, 0, 0); }
+  to { transform: translate3d(2%, 4px, 0); }
+}
+@keyframes current-flow {
+  0% { transform: translate3d(-7%, 0, 0) scaleX(1.08); }
+  50% { transform: translate3d(1%, 8px, 0) scaleX(.98); }
+  100% { transform: translate3d(7%, -3px, 0) scaleX(1.08); }
+}
+@keyframes water-shimmer {
+  0% { transform: translate3d(-4%, -1%, 0); opacity: .18; }
+  50% { opacity: .34; }
+  100% { transform: translate3d(4%, 2%, 0); opacity: .2; }
+}
+@keyframes silt-breathe {
+  0%, 100% { transform: translate3d(-2%, 0, 0) scale(1); opacity: .16; }
+  50% { transform: translate3d(2%, -7px, 0) scale(1.05); opacity: .25; }
+}
+@keyframes gull-drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(7px); }
+}
+
+@media (max-width: 760px) {
+  .ocean-horizon { top: 33%; }
+  .ocean-wave--far { top: 32%; }
+  .ocean-wave--near { top: 43%; }
+  .ocean-ripples { inset-block-start: 44%; }
+  .gull--one { left: 7%; }
+  .gull--three { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ocean-wave, .ocean-current, .ocean-ripples, .ocean-caustics, .ocean-haze, .gull { animation: none; }
+}
+</style>

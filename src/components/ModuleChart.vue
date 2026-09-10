@@ -32,3 +32,26 @@ const currency = new Intl.NumberFormat("es-MX", {
     </div>
   </article>
 </template>
+
+<style scoped>
+.module-chart {
+  padding: 20px 22px 18px;
+  border-radius: calc(var(--radius) * 1.4);
+  background: color-mix(in oklab, var(--label) 92%, transparent);
+  box-shadow: 0 14px 34px -18px color-mix(in oklab, black 55%, transparent);
+  color: var(--label-ink);
+}
+.module-chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 14px;
+}
+.module-chart-title { margin: 0; font-family: var(--font-display); font-size: 18px; }
+.module-chart-total { font-variant-numeric: tabular-nums; font-weight: 700; }
+.module-chart-bars { display: flex; flex-direction: column; gap: 10px; }
+.module-chart-row { display: grid; grid-template-columns: 84px 1fr auto; align-items: center; gap: 10px; font-size: 12.5px; }
+.module-chart-track { height: 8px; border-radius: 999px; background: color-mix(in oklab, var(--rock) 14%, transparent); overflow: hidden; }
+.module-chart-fill { display: block; height: 100%; border-radius: 999px; }
+.module-chart-value { font-variant-numeric: tabular-nums; text-align: right; }
+</style>

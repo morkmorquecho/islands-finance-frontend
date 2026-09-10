@@ -154,3 +154,85 @@ const landmass = computed(() => LANDMASSES[shapeIndex.value]);
     <figcaption>{{ name }}</figcaption>
   </figure>
 </template>
+
+<style scoped>
+
+  .finance-island {
+    width: min(170px, 48%);
+    margin: -5px -7px 7px;
+    outline: none;
+    animation: island-bob 7s ease-in-out infinite;
+    animation-delay: var(--island-delay);
+  }
+  .finance-island:focus-visible {
+    outline: 3px solid var(--tag-coral);
+    outline-offset: 4px;
+  }
+  .finance-island:nth-child(even) { margin-top: 45px; }
+  .finance-island--compact { width: 33%; margin-inline: 0; }
+  .finance-island svg {
+    display: block;
+    width: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 9px 6px color-mix(in oklab, var(--ocean-deep) 19%, transparent));
+  }
+  .finance-island figcaption {
+    width: fit-content;
+    max-width: 90%;
+    margin: -2px auto 0;
+    padding: 4px 9px;
+    overflow: hidden;
+    border-radius: 999px;
+    color: var(--label-ink);
+    background: var(--label);
+    box-shadow: 0 1px 0 color-mix(in oklab, var(--foreground) 12%, transparent);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .island-waterline { fill: none; stroke-linejoin: bevel; }
+  .island-waterline--outer { stroke: color-mix(in oklab, var(--reef) 72%, transparent); stroke-width: 7; opacity: .62; }
+  .island-waterline--inner { stroke: color-mix(in oklab, var(--shore) 76%, transparent); stroke-width: 2; opacity: .76; }
+  .island-sand { fill: color-mix(in oklab, var(--sand) 90%, var(--label)); stroke: color-mix(in oklab, var(--rock) 34%, var(--sand)); stroke-width: 1.4; stroke-linejoin: bevel; }
+  .island-land { stroke: color-mix(in oklab, var(--rock) 25%, transparent); stroke-width: 1.1; stroke-linejoin: bevel; }
+  .island-land--default { fill: color-mix(in oklab, var(--tint-default) 76%, var(--sand)); }
+  .island-land--nu { fill: color-mix(in oklab, var(--tint-nu) 18%, var(--tint-default)); }
+  .island-land--mercado-pago { fill: color-mix(in oklab, var(--tint-mercado-pago) 20%, var(--tint-default)); }
+  .island-land--revolut { fill: color-mix(in oklab, var(--tint-revolut) 17%, var(--tint-default)); }
+  .island-land--cetes { fill: color-mix(in oklab, var(--tint-cetes) 24%, var(--tint-default)); }
+  .island-shore { fill: none; stroke: var(--shore); stroke-width: 1.8; stroke-linecap: round; opacity: .72; }
+  .island-contour { fill: none; stroke: color-mix(in oklab, var(--rock) 43%, transparent); stroke-linecap: round; stroke-linejoin: round; }
+  .island-contour--one { stroke-width: 1.15; opacity: .66; }
+  .island-contour--two { stroke-width: 1; opacity: .5; }
+  .island-contour--three { stroke-width: .85; opacity: .4; }
+  .island-hatch { fill: none; stroke: color-mix(in oklab, var(--rock) 34%, transparent); stroke-width: .8; stroke-linecap: round; opacity: .46; }
+  .island-cliff { fill: var(--rock); opacity: .78; }
+  .island-rock { fill: var(--rock); opacity: .66; }
+  .island-pebble { fill: color-mix(in oklab, var(--rock) 68%, var(--sand)); opacity: .72; }
+  .island-palm { fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: .86; }
+
+  .palm-shadow { stroke: color-mix(in oklab, var(--rock) 28%, transparent); stroke-width: 3; opacity: .5; }
+  .palm-trunk { stroke: color-mix(in oklab, var(--rock) 88%, var(--label-ink)); stroke-width: 2.6; }
+  .palm-trunk-detail { stroke: color-mix(in oklab, var(--sand) 52%, var(--rock)); stroke-width: .8; }
+  .palm-frond { stroke: color-mix(in oklab, var(--label-ink) 68%, var(--tint-default)); stroke-width: 2.1; }
+  .palm-leaflets { stroke: color-mix(in oklab, var(--label-ink) 50%, var(--tint-default)); stroke-width: .8; opacity: .8; }
+  .palm-crown { fill: var(--rock); stroke: none; }
+
+  @keyframes island-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
+  @media (max-width: 760px) {
+    .finance-island { width: min(150px, 45%); }
+    .finance-island--compact { width: 30%; }
+    .finance-island:nth-child(even) { margin-top: 28px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .finance-island { animation: none; }
+  }
+</style>

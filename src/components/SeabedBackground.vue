@@ -43,3 +43,59 @@ const BUBBLES = [
     />
   </div>
 </template>
+
+
+<style scoped>
+.seabed-background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: var(--deep-progress, 0);
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    color-mix(in oklab, var(--ocean-deep) 35%, black) 50%,
+    oklch(0.09 0.035 194) 100%);
+  pointer-events: none;
+}
+
+@keyframes kelp-sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+
+@keyframes bubble-rise {
+  from { transform: translateY(0); opacity: .35; }
+  to { transform: translateY(-420px); opacity: 0; }
+}
+
+.seabed-floor {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  fill: color-mix(in oklab, var(--ocean-deep) 45%, black);
+  opacity: .85;
+}
+
+.seabed-kelp {
+  position: absolute;
+  border-radius: 3px;
+  transform-origin: bottom center;
+  animation: kelp-sway 6s ease-in-out infinite;
+  opacity: .55;
+}
+
+.seabed-bubble {
+  position: absolute;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--shore) 55%, transparent);
+  opacity: .35;
+  animation: bubble-rise linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seabed-bubble,
+  .seabed-kelp {
+    animation: none;
+  }
+}
+</style>
