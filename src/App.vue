@@ -1,5 +1,7 @@
-<script setup lang="ts"></script>
-
+<script setup>
+import Modal from '@/components/ui/Modal.vue'
+</script>
 <template>
-  <router-view />
+  <RouterView />
+  <Modal />
 </template>

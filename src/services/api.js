@@ -186,11 +186,9 @@ export function setupInterceptors(pinia) {
         }
       }
 
-      if (isFormattedApiError(response)) {
-        return Promise.reject(createApiError(response.data))
-      }
-
-      // 401 inesperado por race condition
+      // ── 401: intentar refresh ANTES de tratarlo como error formateado ────
+      // (el backend manda 401 con el shape {success:false,...}, así que este
+      // chequeo debe ir antes que isFormattedApiError o nunca se alcanza)
       if (response?.status === 401 && !originalRequest._retry) {
         if (!authStore.refreshToken) {
           authStore.clearSession()
@@ -227,6 +225,11 @@ export function setupInterceptors(pinia) {
         } finally {
           isRefreshing = false
         }
+      }
+
+      // Cualquier otro error formateado por la API (400, 403, 404, 500, etc.)
+      if (isFormattedApiError(response)) {
+        return Promise.reject(createApiError(response.data))
       }
 
       const detailError = createDetailError(response?.data)

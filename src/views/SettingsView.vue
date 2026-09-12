@@ -1,89 +1,375 @@
-<script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import authService from '@/services/auth.service'
-import usersService from '@/services/users.service'
+<!-- src/views/SettingsView.vue -->
+<script setup lang="ts">
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+import authService from "@/services/auth.service";
+import usersService from "@/services/users.service";
+import AuthField from "@/components/auth/AuthField.vue";
 
-const router = useRouter()
-const auth = useAuthStore()
+const router = useRouter();
+const auth = useAuthStore();
 
-const pwForm = ref({ current_password: '', new_password: '', confirm_new_password: '' })
-const pwMsg = ref('')
-const pwLoading = ref(false)
+/* ---------- Cambio de contraseña ---------- */
+const pwForm = ref({
+  current_password: "",
+  new_password: "",
+  confirm_new_password: "",
+});
+const pwError = ref("");
+const pwSuccess = ref("");
+const pwLoading = ref(false);
+const showCurrentPw = ref(false);
+const showNewPw = ref(false);
+const showConfirmPw = ref(false);
 
-const emailForm = ref({ email: '', password: '' })
-const emailMsg = ref('')
-const emailLoading = ref(false)
+const newPasswordsMatch = computed(
+  () => pwForm.value.new_password === pwForm.value.confirm_new_password
+);
 
 async function changePassword() {
-  pwMsg.value = ''
-  pwLoading.value = true
+  pwError.value = "";
+  pwSuccess.value = "";
+
+  if (!newPasswordsMatch.value) {
+    pwError.value = "Las contraseñas nuevas no coinciden.";
+    return;
+  }
+
+  pwLoading.value = true;
   try {
-    await authService.changePassword(pwForm.value)
-    pwMsg.value = 'Contraseña actualizada.'
-    pwForm.value = { current_password: '', new_password: '', confirm_new_password: '' }
+    await authService.changePassword(pwForm.value);
+    pwSuccess.value = "Contraseña actualizada.";
+    pwForm.value = {
+      current_password: "",
+      new_password: "",
+      confirm_new_password: "",
+    };
   } catch (err) {
-    pwMsg.value = err.message
+    pwError.value =
+      err instanceof Error
+        ? err.message
+        : "No pudimos actualizar tu contraseña. Intenta nuevamente.";
   } finally {
-    pwLoading.value = false
+    pwLoading.value = false;
   }
 }
+
+/* ---------- Cambio de correo ---------- */
+const emailForm = ref({ email: "", password: "" });
+const emailError = ref("");
+const emailSuccess = ref("");
+const emailLoading = ref(false);
+const showEmailPw = ref(false);
 
 async function requestEmailChange() {
-  emailMsg.value = ''
-  emailLoading.value = true
+  emailError.value = "";
+  emailSuccess.value = "";
+
+  emailLoading.value = true;
   try {
-    await usersService.requestEmailChange(emailForm.value)
-    emailMsg.value = 'Revisa tu nuevo correo para confirmar el cambio.'
+    await usersService.requestEmailChange(emailForm.value);
+    emailSuccess.value =
+      "Revisa tu nuevo correo para confirmar el cambio.";
+    emailForm.value = { email: "", password: "" };
   } catch (err) {
-    emailMsg.value = err.message
+    emailError.value =
+      err instanceof Error
+        ? err.message
+        : "No pudimos solicitar el cambio. Intenta nuevamente.";
   } finally {
-    emailLoading.value = false
+    emailLoading.value = false;
   }
 }
 
+/* ---------- Logout ---------- */
 async function handleLogout() {
-  await auth.logout()
-  router.push({ name: 'login' })
+  await auth.logout();
+  router.push({ name: "login" });
 }
 </script>
 
 <template>
-  <div class="settings">
-    <router-link :to="{ name: 'dashboard' }">&larr; Volver</router-link>
-    <h1>Ajustes</h1>
+  <main class="settings-page">
+    <header class="settings-header">
+      <RouterLink class="back-link" :to="{ name: 'dashboard' }">
+        ← Volver al dashboard
+      </RouterLink>
+      <h1>Ajustes</h1>
+      <p class="settings-subtitle">
+        Gestiona la seguridad de tu cuenta y tus datos de acceso.
+      </p>
+    </header>
 
-    <section>
-      <h2>Cambiar contraseña</h2>
-      <form @submit.prevent="changePassword">
-        <input v-model="pwForm.current_password" type="password" placeholder="Contraseña actual" required />
-        <input v-model="pwForm.new_password" type="password" placeholder="Nueva contraseña" required />
-        <input v-model="pwForm.confirm_new_password" type="password" placeholder="Confirmar nueva contraseña" required />
-        <button type="submit" :disabled="pwLoading">{{ pwLoading ? 'Guardando...' : 'Actualizar' }}</button>
+    <!-- Cambiar contraseña -->
+    <section class="settings-card" aria-labelledby="pw-title">
+      <div class="card-heading">
+        <div>
+          <p class="card-kicker">Seguridad</p>
+          <h2 id="pw-title">Cambiar contraseña</h2>
+        </div>
+      </div>
+
+      <form class="settings-form" @submit.prevent="changePassword">
+        <AuthField
+          id="current_password"
+          label="Contraseña actual"
+          icon="●"
+        >
+          <input
+            id="current_password"
+            v-model="pwForm.current_password"
+            :type="showCurrentPw ? 'text' : 'password'"
+            required
+            autocomplete="current-password"
+            placeholder="Tu contraseña actual"
+          />
+          <button
+            class="password-toggle"
+            type="button"
+            :aria-label="showCurrentPw ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            :aria-pressed="showCurrentPw"
+            @click="showCurrentPw = !showCurrentPw"
+          >
+            {{ showCurrentPw ? "Ocultar" : "Mostrar" }}
+          </button>
+        </AuthField>
+
+        <AuthField id="new_password" label="Nueva contraseña" icon="●">
+          <input
+            id="new_password"
+            v-model="pwForm.new_password"
+            :type="showNewPw ? 'text' : 'password'"
+            required
+            minlength="6"
+            autocomplete="new-password"
+            placeholder="Mínimo 6 caracteres"
+          />
+          <button
+            class="password-toggle"
+            type="button"
+            :aria-label="showNewPw ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            :aria-pressed="showNewPw"
+            @click="showNewPw = !showNewPw"
+          >
+            {{ showNewPw ? "Ocultar" : "Mostrar" }}
+          </button>
+        </AuthField>
+
+        <AuthField
+          id="confirm_new_password"
+          label="Confirmar nueva contraseña"
+          icon="●"
+        >
+          <input
+            id="confirm_new_password"
+            v-model="pwForm.confirm_new_password"
+            :type="showConfirmPw ? 'text' : 'password'"
+            required
+            minlength="6"
+            autocomplete="new-password"
+            placeholder="Repite tu contraseña"
+          />
+          <button
+            class="password-toggle"
+            type="button"
+            :aria-label="showConfirmPw ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            :aria-pressed="showConfirmPw"
+            @click="showConfirmPw = !showConfirmPw"
+          >
+            {{ showConfirmPw ? "Ocultar" : "Mostrar" }}
+          </button>
+        </AuthField>
+
+        <p v-if="pwError" class="error-message" role="alert">
+          {{ pwError }}
+        </p>
+        <p v-if="pwSuccess" class="success-message" role="status">
+          {{ pwSuccess }}
+        </p>
+
+        <button class="submit-button" type="submit" :disabled="pwLoading">
+          <span>{{ pwLoading ? "Guardando..." : "Actualizar contraseña" }}</span>
+          <span aria-hidden="true">→</span>
+        </button>
       </form>
-      <p v-if="pwMsg">{{ pwMsg }}</p>
     </section>
 
-    <section>
-      <h2>Cambiar correo</h2>
-      <form @submit.prevent="requestEmailChange">
-        <input v-model="emailForm.email" type="email" placeholder="Nuevo correo" required />
-        <input v-model="emailForm.password" type="password" placeholder="Contraseña actual" required />
-        <button type="submit" :disabled="emailLoading">{{ emailLoading ? 'Enviando...' : 'Solicitar cambio' }}</button>
+    <!-- Cambiar correo -->
+    <section class="settings-card" aria-labelledby="email-title">
+      <div class="card-heading">
+        <div>
+          <p class="card-kicker">Cuenta</p>
+          <h2 id="email-title">Cambiar correo</h2>
+        </div>
+      </div>
+
+      <form class="settings-form" @submit.prevent="requestEmailChange">
+        <AuthField id="email" label="Nuevo correo" icon="✉">
+          <input
+            id="email"
+            v-model="emailForm.email"
+            type="email"
+            required
+            autocomplete="email"
+            placeholder="nuevo@correo.com"
+          />
+        </AuthField>
+
+        <AuthField
+          id="email_password"
+          label="Contraseña actual"
+          icon="●"
+        >
+          <input
+            id="email_password"
+            v-model="emailForm.password"
+            :type="showEmailPw ? 'text' : 'password'"
+            required
+            autocomplete="current-password"
+            placeholder="Confirma con tu contraseña"
+          />
+          <button
+            class="password-toggle"
+            type="button"
+            :aria-label="showEmailPw ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            :aria-pressed="showEmailPw"
+            @click="showEmailPw = !showEmailPw"
+          >
+            {{ showEmailPw ? "Ocultar" : "Mostrar" }}
+          </button>
+        </AuthField>
+
+        <p v-if="emailError" class="error-message" role="alert">
+          {{ emailError }}
+        </p>
+        <p v-if="emailSuccess" class="success-message" role="status">
+          {{ emailSuccess }}
+        </p>
+
+        <button class="submit-button" type="submit" :disabled="emailLoading">
+          <span>{{ emailLoading ? "Enviando..." : "Solicitar cambio de correo" }}</span>
+          <span aria-hidden="true">→</span>
+        </button>
       </form>
-      <p v-if="emailMsg">{{ emailMsg }}</p>
     </section>
 
-    <button class="logout" @click="handleLogout">Cerrar sesión</button>
-  </div>
+    <!-- Zona peligrosa -->
+    <section class="settings-card danger" aria-labelledby="danger-title">
+      <div class="card-heading">
+        <div>
+          <p class="card-kicker">Sesión</p>
+          <h2 id="danger-title">Cerrar sesión</h2>
+        </div>
+      </div>
+
+      <p class="settings-note">
+        Se cerrará tu sesión en este dispositivo y volverás al inicio de sesión.
+      </p>
+
+      <button
+        class="submit-button danger-button"
+        type="button"
+        @click="handleLogout"
+      >
+        <span>Cerrar sesión</span>
+        <span aria-hidden="true">→</span>
+      </button>
+    </section>
+  </main>
 </template>
 
 <style scoped>
-.settings { padding: 2rem; max-width: 480px; margin: 0 auto; }
-section { margin-bottom: 2rem; }
-form { display: flex; flex-direction: column; gap: 0.6rem; }
-input { padding: 0.5rem; border: 1px solid #ccc; border-radius: 6px; }
-button { padding: 0.6rem; border: none; border-radius: 6px; background: #0f5c73; color: #fff; cursor: pointer; }
-.logout { background: #c0392b; }
+.settings-page {
+  width: min(640px, 100%);
+  margin: 0 auto;
+  padding: 48px 20px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: var(--foreground);
+}
+
+.settings-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.back-link {
+  color: var(--label-ink);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.back-link:hover {
+  color: var(--ocean-deep);
+  text-decoration: underline;
+}
+
+.settings-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.settings-subtitle {
+  margin: 0;
+  color: var(--label-ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: clamp(20px, 3vw, 28px);
+  border: 1px solid color-mix(in oklab, var(--foreground) 16%, transparent);
+  border-radius: 20px;
+  background: color-mix(in oklab, var(--label) 68%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.settings-card .card-heading {
+  padding-bottom: 0;
+}
+
+.settings-card h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-note {
+  margin: 0;
+  color: var(--label-ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.danger {
+  border-color: color-mix(in oklab, var(--tag-coral) 45%, transparent);
+  background: color-mix(in oklab, var(--tag-coral) 8%, transparent);
+}
+
+.danger-button {
+  background: var(--tag-coral);
+}
+
+.danger-button:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--tag-coral) 82%, var(--ocean-near));
+}
 </style>

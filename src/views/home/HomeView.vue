@@ -1,49 +1,90 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import OceanBackground from "../../components/OceanBackground.vue";
 import SeabedBackground from "../../components/SeabedBackground.vue";
 import ModuleCluster from "../../components/ModuleCluster.vue";
 import ModuleChart from "../../components/ModuleChart.vue";
 import { BRAND_TINTS, type IslandAccount } from "../../types/brand-tints";
+import { useUIStore } from "@/stores/ui";
+import modulesService from "@/services/modules.service";
+import islandsService from "@/services/islands.service";
 
 type FinanceModule = {
+  id: string;
   moduleName: string;
   accentColor: "coral" | "teal" | "sun";
   islands: IslandAccount[];
 };
 
-const MODULES: FinanceModule[] = [
-  {
-    moduleName: "Fondo de emergencias",
-    accentColor: "coral",
-    islands: [
-      { name: "Nu", brandTint: BRAND_TINTS.nu },
-      { name: "Mercado Pago", brandTint: BRAND_TINTS.mercadoPago },
-    ],
-  },
-  {
-    moduleName: "Ocio",
-    accentColor: "teal",
-    islands: [
-      { name: "Revolut", brandTint: BRAND_TINTS.revolut },
-      { name: "Viajes", brandTint: BRAND_TINTS.default },
-    ],
-  },
-  {
-    moduleName: "Fondo de ahorros",
-    accentColor: "sun",
-    islands: [
-      { name: "Cetes", brandTint: BRAND_TINTS.cetes },
-      { name: "Nu ahorro", brandTint: BRAND_TINTS.nu },
-      { name: "Inversión", brandTint: BRAND_TINTS.default },
-            { name: "Cetes", brandTint: BRAND_TINTS.cetes },
-      { name: "Nu ahorro", brandTint: BRAND_TINTS.nu },
-            
-    ],
-  },
-  
-];
+const ACCENTS = ["coral", "teal", "sun"] as const;
 
+// ── módulos / islas reales ─────────────────────────────────────────
+const ui = useUIStore();
+const modules = ref<FinanceModule[]>([]);
+const loadingModules = ref(true);
+const modulesError = ref("");
+
+function tintForIsland(island: any) {
+  return BRAND_TINTS[island.template as keyof typeof BRAND_TINTS] ?? BRAND_TINTS.default;
+}
+
+async function loadModules() {
+  loadingModules.value = true;
+  modulesError.value = "";
+  try {
+    const modulesData = await modulesService.list();
+
+    modules.value = await Promise.all(
+      modulesData.results.map(async (mod: any, index: number) => {
+        const islandsData = await islandsService.list({ module: mod.id });
+        return {
+          id: mod.id,
+          moduleName: mod.name,
+          accentColor: ACCENTS[index % ACCENTS.length],
+          islands: islandsData.results.map((isl: any) => ({
+            name: isl.name,
+            brandTint: tintForIsland(isl),
+          })),
+        } as FinanceModule;
+      })
+    );
+  } catch (err: any) {
+    modulesError.value = err.message ?? "No se pudieron cargar tus archipiélagos.";
+  } finally {
+    loadingModules.value = false;
+  }
+}
+
+function openModuleForm() {
+  ui.showFormModal("module", {
+    title: "Nuevo archipiélago",
+    onSuccess: loadModules,
+  });
+}
+
+function openIslandForm(moduleId: string) {
+  ui.showFormModal("island", {
+    title: "Nueva isla",
+    moduleId,
+    onSuccess: loadModules,
+  });
+}
+
+const clusterCountStyle = computed(() => ({
+  "--cluster-count": String(modules.value.length || 1),
+}));
+
+// ── patrimonio total (suma simple mientras no haya endpoint dedicado) ──
+const totalPatrimonio = computed(() => {
+  // Placeholder: el backend expone total_value por módulo (portfolio/modules/),
+  // que ya viene sumado en `modulesData.results[i].total_value`. Si quieres el
+  // total exacto, cambia loadModules para acumularlo ahí mismo.
+  return null;
+});
+
+// ── charts de "bajo la superficie" (aún con datos de ejemplo) ──────
+// TODO: reemplazar por datos reales cuando tengamos un endpoint de analítica
+// por módulo; por ahora se deja fijo para no romper el diseño existente.
 const CHART_MODULES = [
   {
     moduleName: "Fondo de emergencias",
@@ -72,6 +113,7 @@ const CHART_MODULES = [
   },
 ];
 
+// ── scroll / efecto de profundidad (sin cambios) ────────────────────
 const sceneEl = ref<HTMLElement | null>(null);
 const transitionEl = ref<HTMLElement | null>(null);
 const isSubmerged = ref(false);
@@ -103,6 +145,7 @@ function onScroll() {
 }
 
 onMounted(() => {
+  loadModules();
   updateProgress();
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onScroll);
@@ -126,7 +169,10 @@ onUnmounted(() => {
           </span>
                   Island Finance
         </RouterLink>
-        <button class="profile-button" type="button" aria-label="Abrir perfil">MM</button>
+        <div class="header-actions">
+          <button class="new-module-button" type="button" @click="openModuleForm">+ Archipiélago</button>
+          <button class="profile-button" type="button" aria-label="Abrir perfil">MM</button>
+        </div>
       </header>
 
       <section class="finance-summary" id="patrimonio" aria-labelledby="page-title">
@@ -136,14 +182,22 @@ onUnmounted(() => {
       </section>
 
       <div class="archipelago-stage" :class="{ 'is-submerged': isSubmerged }">
-        <div :class="`archipelago-map archipelago-map--${MODULES.length}`">
+        <p v-if="modulesError" class="modules-error">{{ modulesError }}</p>
+
+        <p v-if="!loadingModules && !modules.length" class="modules-empty">
+          Todavía no tienes archipiélagos (Propósitos financieros).
+          <button type="button" class="link-button" @click="openModuleForm">Crea el primero</button>
+        </p>
+
+        <div v-if="modules.length" class="archipelago-map" :style="clusterCountStyle">
           <ModuleCluster
-            v-for="(mod, index) in MODULES"
-            :key="mod.moduleName"
+            v-for="(mod, index) in modules"
+            :key="mod.id"
             :module-name="mod.moduleName"
             :accent-color="mod.accentColor"
             :islands="mod.islands"
             :cluster-index="index"
+            @add-island="openIslandForm(mod.id)"
           />
         </div>
       </div>
@@ -171,7 +225,7 @@ onUnmounted(() => {
     <footer class="scene-footer">
       <span>Actualizado hoy</span>
       <span aria-hidden="true">•</span>
-      <span>3 archipiélagos · 7 islas</span>
+      <span>{{ modules.length }} archipiélagos · {{ modules.reduce((n, m) => n + m.islands.length, 0) }} islas</span>
     </footer>
   </main>
 </template>
@@ -194,8 +248,22 @@ onUnmounted(() => {
 .finance-header { display: flex; align-items: center; justify-content: space-between; width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding-top: 24px; }
 .finance-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--foreground); font-family: var(--font-display); font-size: 18px; font-weight: 700; text-decoration: none; }
 .finance-brand-mark { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid color-mix(in oklab, var(--foreground) 28%, transparent); border-radius: 50%; color: var(--ocean-deep); }
+
+.header-actions { display: flex; align-items: center; gap: 10px; }
+.new-module-button {
+  padding: 0 14px;
+  height: 38px;
+  border: 1px solid color-mix(in oklab, var(--foreground) 25%, transparent);
+  border-radius: 999px;
+  color: var(--foreground);
+  background: color-mix(in oklab, var(--label) 55%, transparent);
+  font: 700 12px var(--font-sans);
+  cursor: pointer;
+}
+.new-module-button:hover { background: color-mix(in oklab, var(--ocean-deep) 12%, transparent); }
+
 .profile-button { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid color-mix(in oklab, var(--foreground) 25%, transparent); border-radius: 50%; color: var(--foreground); background: color-mix(in oklab, var(--label) 55%, transparent); font: 600 12px var(--font-sans); cursor: pointer; }
-.profile-button:focus-visible, .finance-brand:focus-visible { outline: 3px solid var(--tag-coral); outline-offset: 4px; }
+.profile-button:focus-visible, .finance-brand:focus-visible, .new-module-button:focus-visible { outline: 3px solid var(--tag-coral); outline-offset: 4px; }
 
 .finance-summary { position: relative; z-index: 2; width: min(720px, calc(100% - 32px)); margin: 34px auto 0; text-align: center; }
 .finance-summary > p:first-child { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
@@ -208,8 +276,36 @@ onUnmounted(() => {
   z-index: 1;
 }
 
+.modules-error {
+  width: min(720px, calc(100% - 32px));
+  margin: 16px auto 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: var(--tag-coral);
+  background: color-mix(in oklab, var(--tag-coral) 10%, transparent);
+  font-size: 13px;
+  text-align: center;
+}
+
+.modules-empty {
+  width: min(480px, calc(100% - 32px));
+  margin: 40px auto 0;
+  color: var(--label-ink);
+  font-size: 14px;
+  text-align: center;
+}
+.link-button {
+  border: 0;
+  padding: 0;
+  margin-left: 4px;
+  color: var(--foreground);
+  background: transparent;
+  font: 700 14px var(--font-sans);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .archipelago-map { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(var(--cluster-count, 3), minmax(0, 1fr)); align-items: end; gap: clamp(12px, 3vw, 54px); width: min(1180px, calc(100% - 40px)); min-height: 470px; margin: -22px auto 0; padding: 68px 0 54px; }
-.archipelago-map--3 { --cluster-count: 3; }
 
 .seabed-stage {
   position: relative;
@@ -253,5 +349,12 @@ onUnmounted(() => {
 
 @media (prefers-reduced-motion: reduce) {
   .archipelago-stage, .seabed-charts { transition: none; }
+}
+
+.archipelago-map:empty {
+  pointer-events: none;
+  min-height: 0;
+  margin-top: 0;
+  padding: 0;
 }
 </style>

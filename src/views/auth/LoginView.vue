@@ -24,7 +24,7 @@ async function handleSubmit() {
     router.push(
       typeof route.query.redirect === "string"
         ? route.query.redirect
-        : { name: "dashboard" }
+        : { name: "home" }
     );
   } catch (err) {
     errorMsg.value =

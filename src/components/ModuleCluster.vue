@@ -10,12 +10,17 @@ const props = defineProps<{
   clusterIndex: number;
 }>();
 
+const emit = defineEmits<{ (e: "add-island"): void }>();
+
 const compact = computed(() => props.islands.length > 4);
 </script>
 
 <template>
   <section :class="`module-cluster module-cluster--${islands.length}`" :aria-label="moduleName">
-    <h2 :class="`module-tag module-tag--${accentColor}`">{{ moduleName }}</h2>
+    <div class="module-tag-row">
+      <h2 :class="`module-tag module-tag--${accentColor}`">{{ moduleName }}</h2>
+      <button class="add-island-btn" type="button" aria-label="Agregar isla" @click="emit('add-island')">+</button>
+    </div>
     <div class="module-reef">
       <Island
         v-for="(island, index) in islands"
@@ -82,5 +87,28 @@ const compact = computed(() => props.islands.length > 4);
 @media (max-width: 760px) {
   .module-cluster, .module-cluster:nth-child(2) { align-self: auto; margin-top: 0; }
   .module-reef { min-height: 155px; padding-inline: 20px; }
+}.module-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
 }
+.module-tag { margin: 0; }
+
+.add-island-btn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--label);
+  background: var(--module-accent, var(--ocean-deep));
+  font: 700 14px var(--font-sans);
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 140ms ease;
+}
+.add-island-btn:hover { transform: scale(1.12); }
 </style>
+

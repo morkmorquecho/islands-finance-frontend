@@ -1,22 +1,27 @@
 import { defineStore } from 'pinia'
 
+const EMPTY_MODAL = {
+  show:             false,
+  message:          '',
+  title:            '',
+  animation:        '',
+  showActionButton: false,
+  buttonText:       '',
+  showCancelButton: false,
+  cancelText:       '',
+  _callback:        null,
+  // ── nuevo: soporte de formulario ──────────────────────────────
+  formType:         null,   // 'module' | 'island' | null
+  formPayload:      null,   // datos de contexto para el form (moduleId, onSuccess, etc.)
+}
+
 export const useUIStore = defineStore('ui', {
   state: () => ({
-    modal: {
-      show:             false,
-      message:          '',
-      title:            '',
-      animation:        '',
-      showActionButton: false,
-      buttonText:       '',
-      showCancelButton: false,
-      cancelText:       '',
-      _callback:        null,
-    }
+    modal: { ...EMPTY_MODAL },
   }),
 
   actions: {
-    // ─── núcleo ────────────────────────────────────────────────
+    // ─── núcleo (mensajes) ─────────────────────────────────────
     showModal(message, title = '', animation = '', options = {}) {
       if (this.modal.show) return
       this.modal.message          = message
@@ -30,21 +35,27 @@ export const useUIStore = defineStore('ui', {
         confirm: options.onConfirm ?? null,
         cancel:  options.onCancel  ?? null,
       }
+      this.modal.formType    = null
+      this.modal.formPayload = null
+      this.modal.show = true
+    },
+
+    // ─── nuevo: modales de formulario ──────────────────────────
+    /**
+     * @param {'module'|'island'} formType
+     * @param {{ title?: string, moduleId?: string, onSuccess?: (result: any) => void }} payload
+     */
+    showFormModal(formType, payload = {}) {
+      if (this.modal.show) return
+      this.modal.formType    = formType
+      this.modal.formPayload = payload
+      this.modal.title       = payload.title ?? ''
+      this.modal.animation   = ''
       this.modal.show = true
     },
 
     closeModal() {
-      Object.assign(this.modal, {
-        show:             false,
-        message:          '',
-        title:            '',
-        animation:        '',
-        showActionButton: false,
-        buttonText:       '',
-        showCancelButton: false,
-        cancelText:       '',
-        _callback:        null,
-      })
+      Object.assign(this.modal, { ...EMPTY_MODAL })
     },
-  }
+  },
 })
