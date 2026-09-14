@@ -38,7 +38,7 @@ async function handleSubmit() {
 <template>
   <form class="tropical-form" @submit.prevent="handleSubmit">
     <div class="field">
-      <label for="module-name">Nombre del archipiélago</label>
+      <label for="module-name">Nombre del archipiélago (Propósitos financieros)</label>
       <div class="input-shell">
         <input id="module-name" v-model="form.name" type="text" placeholder="ej. Fondo de emergencias" required />
       </div>

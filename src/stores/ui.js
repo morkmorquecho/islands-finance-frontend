@@ -13,6 +13,7 @@ const EMPTY_MODAL = {
   // ── nuevo: soporte de formulario ──────────────────────────────
   formType:         null,   // 'module' | 'island' | null
   formPayload:      null,   // datos de contexto para el form (moduleId, onSuccess, etc.)
+  islandId:         null,
 }
 
 export const useUIStore = defineStore('ui', {
@@ -37,6 +38,7 @@ export const useUIStore = defineStore('ui', {
       }
       this.modal.formType    = null
       this.modal.formPayload = null
+      this.modal.islandId    = null
       this.modal.show = true
     },
 
@@ -51,6 +53,16 @@ export const useUIStore = defineStore('ui', {
       this.modal.formPayload = payload
       this.modal.title       = payload.title ?? ''
       this.modal.animation   = ''
+      this.modal.show = true
+    },
+
+    showIslandInfo(islandId) {
+      if (this.modal.show) return
+      this.modal.formType = null
+      this.modal.formPayload = null
+      this.modal.islandId = String(islandId)
+      this.modal.title = ''
+      this.modal.animation = ''
       this.modal.show = true
     },
 

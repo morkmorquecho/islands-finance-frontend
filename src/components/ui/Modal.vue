@@ -3,12 +3,14 @@ import { computed } from 'vue'
 import { useUIStore } from '@/stores/ui'
 import ModuleForm from '../ModuleForm.vue'
 import IslandForm from '../IslandForm.vue'
+import IslandInfoModal from './IslandInfoModal.vue'
 import islandIcon from '@/assets/isla.png'
 
 const ui = useUIStore()
 const modal = computed(() => ui.modal)
 
 const isFormMode = computed(() => !!modal.value.formType)
+const isIslandInfoMode = computed(() => !!modal.value.islandId)
 
 function handleOverlayClick() {
   ui.closeModal()
@@ -35,10 +37,10 @@ function handleFormSuccess(result) {
     <Transition name="modal-fade">
       <div v-if="modal.show" class="modal-overlay" @click.self="handleOverlayClick">
         <Transition name="modal-pop" appear>
-          <div class="modal-card" :class="{ 'is-form': isFormMode }" role="dialog" aria-modal="true">
+          <div class="modal-card" :class="{ 'is-form': isFormMode, 'is-island-info': isIslandInfoMode }" role="dialog" aria-modal="true">
 
             <!-- ola decorativa: solo en modo mensaje -->
-            <div v-if="!isFormMode" class="modal-wave-mask" aria-hidden="true">
+            <div v-if="!isFormMode && !isIslandInfoMode" class="modal-wave-mask" aria-hidden="true">
               <svg class="modal-wave" viewBox="0 0 600 40" preserveAspectRatio="none">
                 <path d="M0,20 C100,40 200,0 300,20 C400,40 500,0 600,20 L600,0 L0,0 Z" />
               </svg>
@@ -74,6 +76,8 @@ function handleFormSuccess(result) {
                   @cancel="ui.closeModal()"
                 />
               </template>
+
+              <IslandInfoModal v-else-if="isIslandInfoMode" :island-id="modal.islandId" />
 
               <!-- ── modo mensaje (comportamiento original) ─────── -->
               <template v-else>
@@ -144,6 +148,11 @@ function handleFormSuccess(result) {
 .modal-card.is-form {
   width: min(560px, 100%);
   padding: 28px 28px 28px;
+}
+.modal-card.is-island-info {
+  width: min(540px, 100%);
+  padding: 0;
+  background: color-mix(in oklab, var(--label) 96%, var(--sky-top));
 }
 
 /* ── banda de olas decorativa: la máscara recorta el desborde, el svg se mueve libre dentro ── */

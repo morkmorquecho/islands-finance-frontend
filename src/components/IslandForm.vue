@@ -97,6 +97,7 @@ async function handleSubmit() {
     const payload = { ...form.value }
     if (!payload.template) delete payload.template
     if (payload.kind === 'cash') {
+      payload.currency = (payload.currency || '').toUpperCase()
       delete payload.symbol
       delete payload.asset_type
     } else {
@@ -173,7 +174,10 @@ onMounted(loadContext)
       <div class="field">
         <label for="island-currency">Moneda</label>
         <div class="input-shell">
-          <input id="island-currency" v-model="form.currency" type="text" placeholder="MXN" required />
+          <select id="island-currency" v-model="form.currency" required>
+            <option value="MXN">MXN</option>
+            <option value="USD">USD</option>
+          </select>
         </div>
       </div>
 

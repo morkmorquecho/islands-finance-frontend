@@ -2,7 +2,7 @@
   <div class="not-found">
     <h1>404</h1>
     <p>Esta página no existe.</p>
-    <router-link :to="{ name: 'dashboard' }">Volver al inicio</router-link>
+    <router-link :to="{ name: 'home' }">Volver al inicio</router-link>
   </div>
 </template>
 

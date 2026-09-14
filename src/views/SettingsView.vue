@@ -92,8 +92,8 @@ async function handleLogout() {
 <template>
   <main class="settings-page">
     <header class="settings-header">
-      <RouterLink class="back-link" :to="{ name: 'dashboard' }">
-        ← Volver al dashboard
+      <RouterLink class="back-link" :to="{ name: 'home' }">
+        ← Volver al inicio
       </RouterLink>
       <h1>Ajustes</h1>
       <p class="settings-subtitle">

@@ -42,6 +42,7 @@ async function loadModules() {
           moduleName: mod.name,
           accentColor: ACCENTS[index % ACCENTS.length],
           islands: islandsData.results.map((isl: any) => ({
+            id: String(isl.id),
             name: isl.name,
             brandTint: tintForIsland(isl),
           })),
@@ -68,6 +69,10 @@ function openIslandForm(moduleId: string) {
     moduleId,
     onSuccess: loadModules,
   });
+}
+
+function openIslandInfo(islandId: string) {
+  ui.showIslandInfo(islandId);
 }
 
 const clusterCountStyle = computed(() => ({
@@ -198,6 +203,7 @@ onUnmounted(() => {
             :islands="mod.islands"
             :cluster-index="index"
             @add-island="openIslandForm(mod.id)"
+            @select-island="openIslandInfo"
           />
         </div>
       </div>

@@ -10,7 +10,10 @@ const props = defineProps<{
   clusterIndex: number;
 }>();
 
-const emit = defineEmits<{ (e: "add-island"): void }>();
+const emit = defineEmits<{
+  (e: "add-island"): void;
+  (e: "select-island", islandId: string): void;
+}>();
 
 const compact = computed(() => props.islands.length > 4);
 </script>
@@ -31,6 +34,7 @@ const compact = computed(() => props.islands.length > 4);
         :variant="index + clusterIndex"
         :animation-delay="-(clusterIndex * 0.9 + index * 0.65)"
         :vegetation="(clusterIndex === 0 && index === 0) || (clusterIndex === 2 && index === 1)"
+        @select="emit('select-island', island.id)"
       />
     </div>
   </section>

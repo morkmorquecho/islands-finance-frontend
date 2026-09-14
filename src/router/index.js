@@ -39,20 +39,6 @@ const routes = [
   },
 
   {
-    path: '/modules/:id',
-    name: 'module-detail',
-    component: () => import('@/views/ModuleDetailView.vue'),
-    props: true,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/islands/:id',
-    name: 'island-detail',
-    component: () => import('@/views/IslandDetailView.vue'),
-    props: true,
-    meta: { requiresAuth: true },
-  },
-  {
     path: '/settings',
     name: 'settings',
     component: () => import('@/views/SettingsView.vue'),

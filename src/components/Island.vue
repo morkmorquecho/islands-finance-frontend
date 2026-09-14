@@ -19,6 +19,8 @@ const props = withDefaults(
   }
 );
 
+const emit = defineEmits<{ (e: "select"): void }>();
+
 const COASTS = [
   "M10 65 C15 59 19 57 18 50 C17 45 22 43 28 42 C34 41 34 33 40 29 C46 26 52 30 57 24 C62 18 67 16 73 19 C79 22 81 13 88 12 C95 11 98 20 105 19 C113 18 116 25 121 29 C127 33 136 31 138 39 C140 45 150 45 152 51 C154 57 145 61 150 66 C157 72 148 78 141 76 C134 74 133 84 126 87 C119 90 113 82 106 87 C99 92 94 88 88 92 C80 98 74 90 67 91 C60 92 56 84 50 85 C43 86 39 80 32 82 C27 83 28 75 22 73 C16 71 12 72 10 65 Z",
   "M12 60 C18 55 25 56 23 48 C21 42 29 39 35 38 C42 37 43 29 49 26 C55 23 60 28 65 22 C71 15 78 19 82 22 C88 25 91 14 98 15 C105 16 104 24 112 25 C120 26 120 33 128 35 C137 37 143 43 140 50 C138 56 150 59 153 65 C155 71 145 73 140 76 C134 80 130 88 123 87 C116 86 111 81 104 86 C97 91 91 87 85 91 C77 96 72 88 65 89 C58 90 54 81 47 83 C40 85 37 77 30 78 C23 79 26 70 19 69 C14 68 10 65 12 60 Z",
@@ -49,7 +51,11 @@ const landmass = computed(() => LANDMASSES[shapeIndex.value]);
     :class="['finance-island', { 'finance-island--compact': compact }]"
     :style="{ '--island-delay': `${animationDelay}s` }"
     tabindex="0"
-    :aria-label="`Cuenta ${name}`"
+    role="link"
+    :aria-label="`Ver información de ${name}`"
+    @click="emit('select')"
+    @keydown.enter.prevent="emit('select')"
+    @keydown.space.prevent="emit('select')"
   >
     <svg viewBox="0 0 168 112" role="img" aria-hidden="true">
       <defs>
@@ -161,6 +167,7 @@ const landmass = computed(() => LANDMASSES[shapeIndex.value]);
     width: min(170px, 48%);
     margin: -5px -7px 7px;
     outline: none;
+    cursor: pointer;
     animation: island-bob 7s ease-in-out infinite;
     animation-delay: var(--island-delay);
   }
@@ -192,6 +199,7 @@ const landmass = computed(() => LANDMASSES[shapeIndex.value]);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .finance-island:hover svg { filter: drop-shadow(0 12px 8px color-mix(in oklab, var(--ocean-deep) 30%, transparent)); }
 
   .island-waterline { fill: none; stroke-linejoin: bevel; }
   .island-waterline--outer { stroke: color-mix(in oklab, var(--reef) 72%, transparent); stroke-width: 7; opacity: .62; }

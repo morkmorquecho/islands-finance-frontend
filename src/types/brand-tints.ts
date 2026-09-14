@@ -14,6 +14,7 @@ export const BRAND_TINTS = {
 export type BrandTint = (typeof BRAND_TINTS)[keyof typeof BRAND_TINTS];
 
 export type IslandAccount = {
+  id: string;
   name: string;
   brandTint: BrandTint;
 };

@@ -1,6 +1,6 @@
 // src/services/api.js
 import axios from 'axios'
-import { useAuthStore } from '../../src/stores/auth'
+import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 
 const MANY_REQUESTS_MESSAGE =
@@ -118,7 +118,7 @@ export function setupInterceptors(pinia) {
             processQueue(err, null)
             authStore.clearSession()
             const { default: router } = await import('@/router')
-            router.push({ name: 'Login' })
+            router.push({ name: 'login' })
             return Promise.reject(err)
           } finally {
             isRefreshing = false
@@ -138,10 +138,6 @@ export function setupInterceptors(pinia) {
   // ── RESPONSE ─────────────────────────────────────────────────────────────
   api.interceptors.response.use(
     (response) => {
-      // Descargas binarias (Excel, etc.): el body ya es un Blob, no el shape
-      // {success, data, errors, message}. Regresamos la response completa
-      // para que el caller tenga acceso a response.data (blob) y
-      // response.headers (Content-Disposition con el nombre real del archivo).
       if (response.config.responseType === 'blob') {
         return response
       }
@@ -171,29 +167,14 @@ export function setupInterceptors(pinia) {
         )
       }
 
-      // Si pedimos blob pero el backend respondió un error, axios igual
-      // envuelve el body como Blob. Hay que leerlo como texto y parsear
-      // el JSON real antes de poder formatear el error.
-      if (originalRequest?.responseType === 'blob' && response?.data instanceof Blob) {
-        try {
-          const text = await response.data.text()
-          const parsed = JSON.parse(text)
-          if (parsed?.success === false) return Promise.reject(createApiError(parsed))
-          const detailError = createDetailError(parsed)
-          if (detailError) return Promise.reject(detailError)
-        } catch {
-          // el blob no era JSON parseable; cae al manejo genérico de abajo
-        }
-      }
-
-      // ── 401: intentar refresh ANTES de tratarlo como error formateado ────
-      // (el backend manda 401 con el shape {success:false,...}, así que este
-      // chequeo debe ir antes que isFormattedApiError o nunca se alcanza)
+      // ── 401: intentar refresh SIEMPRE primero, antes de tocar el body ────
+      // (incluye requests con responseType: 'blob' — si no, un token
+      // expirado en una descarga nunca dispara el refresh)
       if (response?.status === 401 && !originalRequest._retry) {
         if (!authStore.refreshToken) {
           authStore.clearSession()
           const { default: router } = await import('@/router')
-          router.push({ name: 'Login' })
+          router.push({ name: 'login' })
           return Promise.reject(error)
         }
 
@@ -220,10 +201,25 @@ export function setupInterceptors(pinia) {
           processQueue(refreshError, null)
           authStore.clearSession()
           const { default: router } = await import('@/router')
-          router.push({ name: 'Login' })
+          router.push({ name: 'login' })
           return Promise.reject(refreshError)
         } finally {
           isRefreshing = false
+        }
+      }
+
+      // Si pedimos blob pero el backend respondió un error (no 401), axios igual
+      // envuelve el body como Blob. Hay que leerlo como texto y parsear
+      // el JSON real antes de poder formatear el error.
+      if (originalRequest?.responseType === 'blob' && response?.data instanceof Blob) {
+        try {
+          const text = await response.data.text()
+          const parsed = JSON.parse(text)
+          if (parsed?.success === false) return Promise.reject(createApiError(parsed))
+          const detailError = createDetailError(parsed)
+          if (detailError) return Promise.reject(detailError)
+        } catch {
+          // el blob no era JSON parseable; cae al manejo genérico de abajo
         }
       }
 
