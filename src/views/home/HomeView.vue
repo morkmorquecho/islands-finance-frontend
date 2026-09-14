@@ -6,6 +6,7 @@ import ModuleCluster from "../../components/ModuleCluster.vue";
 import ModuleChart from "../../components/ModuleChart.vue";
 import { BRAND_TINTS, type IslandAccount } from "../../types/brand-tints";
 import { useUIStore } from "@/stores/ui";
+import { useAuthStore } from "@/stores/auth";
 import modulesService from "@/services/modules.service";
 import islandsService from "@/services/islands.service";
 
@@ -14,12 +15,32 @@ type FinanceModule = {
   moduleName: string;
   accentColor: "coral" | "teal" | "sun";
   islands: IslandAccount[];
+  totalValue: number;
 };
 
 const ACCENTS = ["coral", "teal", "sun"] as const;
+const moneyFormatter = new Intl.NumberFormat("es-ES", {
+  style: "currency",
+  currency: "MXN",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
 
 // ── módulos / islas reales ─────────────────────────────────────────
 const ui = useUIStore();
+const authStore = useAuthStore();
+const user = computed(() => authStore.user);
+const userInitials = computed(() => {
+  const source = user.value?.username?.trim() || user.value?.email?.trim() || '';
+  if (!source) return '';
+  return source
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .map((name) => name[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+});
 const modules = ref<FinanceModule[]>([]);
 const loadingModules = ref(true);
 const modulesError = ref("");
@@ -32,11 +53,10 @@ async function loadModules() {
   loadingModules.value = true;
   modulesError.value = "";
   try {
-    const modulesData = await modulesService.list();
-
+    const modulesData = (await modulesService.list()) as any;
     modules.value = await Promise.all(
       modulesData.results.map(async (mod: any, index: number) => {
-        const islandsData = await islandsService.list({ module: mod.id });
+        const islandsData = (await islandsService.list({ module: mod.id })) as any;
         return {
           id: mod.id,
           moduleName: mod.name,
@@ -46,6 +66,7 @@ async function loadModules() {
             name: isl.name,
             brandTint: tintForIsland(isl),
           })),
+          totalValue: Number(mod.total_value ?? 0),
         } as FinanceModule;
       })
     );
@@ -79,13 +100,13 @@ const clusterCountStyle = computed(() => ({
   "--cluster-count": String(modules.value.length || 1),
 }));
 
-// ── patrimonio total (suma simple mientras no haya endpoint dedicado) ──
 const totalPatrimonio = computed(() => {
-  // Placeholder: el backend expone total_value por módulo (portfolio/modules/),
-  // que ya viene sumado en `modulesData.results[i].total_value`. Si quieres el
-  // total exacto, cambia loadModules para acumularlo ahí mismo.
-  return null;
+  return modules.value.reduce((sum, mod) => sum + Number(mod.totalValue ?? 0), 0);
 });
+
+function formatMoney(value: number) {
+  return moneyFormatter.format(value);
+}
 
 // ── charts de "bajo la superficie" (aún con datos de ejemplo) ──────
 // TODO: reemplazar por datos reales cuando tengamos un endpoint de analítica
@@ -176,13 +197,15 @@ onUnmounted(() => {
         </RouterLink>
         <div class="header-actions">
           <button class="new-module-button" type="button" @click="openModuleForm">+ Archipiélago</button>
-          <button class="profile-button" type="button" aria-label="Abrir perfil">MM</button>
+          <RouterLink class="profile-button" :to="{ name: 'settings' }" aria-label="Abrir ajustes de perfil">
+            {{ userInitials || '•' }}
+          </RouterLink>
         </div>
       </header>
 
       <section class="finance-summary" id="patrimonio" aria-labelledby="page-title">
         <p>Tu patrimonio total</p>
-        <h1 id="page-title">$284,650<span>.00</span></h1>
+        <h1 id="page-title">{{ formatMoney(totalPatrimonio) }}</h1>
         <p class="finance-summary-note">Todo lo que has construido, en un solo horizonte.</p>
       </section>
 
