@@ -8,11 +8,14 @@ const props = defineProps<{
   accentColor: "coral" | "teal" | "sun";
   islands: IslandAccount[];
   clusterIndex: number;
+  isSystem: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "add-island"): void;
   (e: "select-island", islandId: string): void;
+  (e: "edit-module"): void;
+  (e: "delete-module"): void;
 }>();
 
 const compact = computed(() => props.islands.length > 4);
@@ -23,6 +26,10 @@ const compact = computed(() => props.islands.length > 4);
     <div class="module-tag-row">
       <h2 :class="`module-tag module-tag--${accentColor}`">{{ moduleName }}</h2>
       <button class="add-island-btn" type="button" aria-label="Agregar isla" @click="emit('add-island')">+</button>
+      <template v-if="!isSystem">
+        <button class="module-action-btn" type="button" aria-label="Editar archipiélago" @click="emit('edit-module')">Editar</button>
+        <button class="module-action-btn module-action-btn--danger" type="button" aria-label="Eliminar archipiélago" @click="emit('delete-module')">Eliminar</button>
+      </template>
     </div>
     <div class="module-reef">
       <Island
@@ -114,5 +121,7 @@ const compact = computed(() => props.islands.length > 4);
   transition: transform 140ms ease;
 }
 .add-island-btn:hover { transform: scale(1.12); }
+.module-action-btn { border: 0; padding: 3px 6px; border-radius: 6px; color: var(--ocean-deep); background: color-mix(in oklab, var(--label) 75%, transparent); font: 700 10px var(--font-sans); cursor: pointer; }
+.module-action-btn--danger { color: #a13d30; }
 </style>
 

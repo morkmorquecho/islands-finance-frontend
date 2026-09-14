@@ -56,14 +56,22 @@ export const useUIStore = defineStore('ui', {
       this.modal.show = true
     },
 
-    showIslandInfo(islandId) {
+    showIslandInfo(islandId, payload = {}) {
       if (this.modal.show) return
       this.modal.formType = null
-      this.modal.formPayload = null
+      this.modal.formPayload = payload
       this.modal.islandId = String(islandId)
       this.modal.title = ''
       this.modal.animation = ''
       this.modal.show = true
+    },
+
+    replaceWithForm(formType, payload = {}) {
+      this.modal.formType = formType
+      this.modal.formPayload = payload
+      this.modal.islandId = null
+      this.modal.title = payload.title ?? ''
+      this.modal.animation = ''
     },
 
     closeModal() {

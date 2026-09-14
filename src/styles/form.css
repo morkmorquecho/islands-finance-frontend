@@ -297,6 +297,26 @@
   transition: transform 180ms ease, background 180ms ease;
 }
 
+.delete-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 50px;
+  padding: 0 17px 0 20px;
+  border: 0;
+  border-radius: 12px;
+  color: var(--label);
+  background: red;
+  font: 700 14px var(--font-sans);
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.delete-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: color-mix(in oklab, red 82%, rgb(99, 12, 12));
+}
+
 .submit-button:hover:not(:disabled) {
   transform: translateY(-2px);
   background: color-mix(in oklab, var(--ocean-deep) 82%, var(--ocean-near));

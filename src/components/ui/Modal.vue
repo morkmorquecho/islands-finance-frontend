@@ -30,6 +30,19 @@ function handleFormSuccess(result) {
   modal.value.formPayload?.onSuccess?.(result)
   ui.closeModal()
 }
+
+function handleIslandEdit(island) {
+  ui.replaceWithForm('island', {
+    title: 'Editar isla',
+    island,
+    onSuccess: modal.value.formPayload?.onSuccess,
+  })
+}
+
+function handleIslandDeleted() {
+  modal.value.formPayload?.onSuccess?.()
+  ui.closeModal()
+}
 </script>
 
 <template>
@@ -77,7 +90,12 @@ function handleFormSuccess(result) {
                 />
               </template>
 
-              <IslandInfoModal v-else-if="isIslandInfoMode" :island-id="modal.islandId" />
+              <IslandInfoModal
+                v-else-if="isIslandInfoMode"
+                :island-id="modal.islandId"
+                @edit-island="handleIslandEdit"
+                @deleted="handleIslandDeleted"
+              />
 
               <!-- ── modo mensaje (comportamiento original) ─────── -->
               <template v-else>

@@ -17,4 +17,5 @@ export type IslandAccount = {
   id: string;
   name: string;
   brandTint: BrandTint;
+  isSystem: boolean;
 };

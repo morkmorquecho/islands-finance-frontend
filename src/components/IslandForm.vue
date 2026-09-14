@@ -12,21 +12,24 @@ const props = defineProps({
 })
 const emit = defineEmits(['success', 'cancel'])
 
+const existingIsland = props.payload?.island ?? null
+const editing = Boolean(existingIsland)
+
 const modules = ref([])
 const templates = ref([])
 const loadingContext = ref(true)
 
 const form = ref({
-  module: props.payload?.moduleId || '',
-  template: '',
-  name: '',
-  kind: 'cash',
-  currency: 'MXN',
-  symbol: '',
-  asset_type: 'crypto',
-  interest_type: '',
-  annual_rate: '',
-  color: '#2FB8A6',
+  module: props.payload?.moduleId || existingIsland?.module || '',
+  template: existingIsland?.template || '',
+  name: existingIsland?.name || '',
+  kind: existingIsland?.kind || 'cash',
+  currency: existingIsland?.currency || 'MXN',
+  symbol: existingIsland?.symbol || '',
+  asset_type: existingIsland?.asset_type || 'crypto',
+  interest_type: existingIsland?.interest_type || '',
+  annual_rate: existingIsland?.annual_rate || '',
+  color: existingIsland?.color || '#2FB8A6',
 })
 
 const loading = ref(false)
@@ -108,8 +111,10 @@ async function handleSubmit() {
     if (!payload.interest_type) delete payload.interest_type
     if (!payload.annual_rate) delete payload.annual_rate
 
-    const created = await islandsService.create(payload)
-    emit('success', created)
+    const result = editing
+      ? await islandsService.partialUpdate(existingIsland.id, payload)
+      : await islandsService.create(payload)
+    emit('success', result)
   } catch (err) {
     errorMsg.value = err.message
   } finally {
@@ -258,7 +263,7 @@ onMounted(loadContext)
     <div class="form-actions">
       <button type="button" class="modal-cancel" @click="emit('cancel')">Cancelar</button>
       <button type="submit" class="submit-button" :disabled="loading || loadingContext">
-        {{ loading ? 'Creando…' : 'Crear isla' }}
+        {{ loading ? (editing ? 'Guardando…' : 'Creando…') : (editing ? 'Guardar cambios' : 'Crear isla') }}
       </button>
     </div>
   </form>

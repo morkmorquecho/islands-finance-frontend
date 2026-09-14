@@ -13,9 +13,11 @@ import islandsService from "@/services/islands.service";
 type FinanceModule = {
   id: string;
   moduleName: string;
+  moduleType: string;
   accentColor: "coral" | "teal" | "sun";
   islands: IslandAccount[];
   totalValue: number;
+  isSystem: boolean;
 };
 
 const ACCENTS = ["coral", "teal", "sun"] as const;
@@ -60,13 +62,16 @@ async function loadModules() {
         return {
           id: mod.id,
           moduleName: mod.name,
+          moduleType: mod.type,
           accentColor: ACCENTS[index % ACCENTS.length],
           islands: islandsData.results.map((isl: any) => ({
             id: String(isl.id),
             name: isl.name,
             brandTint: tintForIsland(isl),
+            isSystem: Boolean(isl.is_system),
           })),
           totalValue: Number(mod.total_value ?? 0),
+          isSystem: Boolean(mod.is_system),
         } as FinanceModule;
       })
     );
@@ -77,9 +82,10 @@ async function loadModules() {
   }
 }
 
-function openModuleForm() {
+function openModuleForm(module: any = null) {
   ui.showFormModal("module", {
-    title: "Nuevo archipiélago",
+    title: module ? "Editar archipiélago" : "Nuevo archipiélago",
+    module,
     onSuccess: loadModules,
   });
 }
@@ -93,7 +99,20 @@ function openIslandForm(moduleId: string) {
 }
 
 function openIslandInfo(islandId: string) {
-  ui.showIslandInfo(islandId);
+  ui.showIslandInfo(islandId, { onSuccess: loadModules });
+}
+
+function confirmModuleDeletion(module: FinanceModule) {
+  if (module.isSystem) return;
+  ui.showModal(`¿Eliminar el archipiélago “${module.moduleName}”? Esta acción no se puede deshacer.`, "Eliminar archipiélago", "", {
+    showActionButton: true,
+    buttonText: "Eliminar",
+    showCancelButton: true,
+    onConfirm: async () => {
+      await modulesService.destroy(module.id);
+      await loadModules();
+    },
+  });
 }
 
 const clusterCountStyle = computed(() => ({
@@ -225,8 +244,11 @@ onUnmounted(() => {
             :accent-color="mod.accentColor"
             :islands="mod.islands"
             :cluster-index="index"
+            :is-system="mod.isSystem"
             @add-island="openIslandForm(mod.id)"
             @select-island="openIslandInfo"
+            @edit-module="openModuleForm({ id: mod.id, name: mod.moduleName, type: mod.moduleType })"
+            @delete-module="confirmModuleDeletion(mod)"
           />
         </div>
       </div>
@@ -334,7 +356,7 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.archipelago-map { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(var(--cluster-count, 3), minmax(0, 1fr)); align-items: end; gap: clamp(12px, 3vw, 54px); width: min(1180px, calc(100% - 40px)); min-height: 470px; margin: -22px auto 0; padding: 68px 0 54px; }
+/* .archipelago-map { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(var(--cluster-count, 3), minmax(0, 1fr)); align-items: end; gap: clamp(12px, 3vw, 54px); width: min(1180px, calc(100% - 40px)); min-height: 470px; margin: -22px auto 0; padding: 68px 0 54px; } */
 
 .seabed-stage {
   position: relative;
@@ -373,7 +395,7 @@ onUnmounted(() => {
   .finance-summary { margin-top: 26px; }
   .finance-summary h1 { font-size: clamp(42px, 14vw, 62px); }
   .finance-summary-note { max-width: 290px; margin-inline: auto; }
-  .archipelago-map { grid-template-columns: 1fr; align-items: initial; gap: 12px; width: min(520px, calc(100% - 24px)); min-height: auto; margin-top: 0; padding: 48px 0 74px; }
+  /* .archipelago-map { grid-template-columns: 1fr; align-items: initial; gap: 12px; width: min(520px, calc(100% - 24px)); min-height: auto; margin-top: 0; padding: 48px 0 74px; } */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -385,5 +407,38 @@ onUnmounted(() => {
   min-height: 0;
   margin-top: 0;
   padding: 0;
+}
+
+
+
+.archipelago-map {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+  gap: clamp(12px, 3vw, 54px);
+  width: min(1180px, calc(100% - 40px));
+  min-height: 470px;
+  margin: -22px auto 0;
+  padding: 68px 0 54px;
+}
+
+@media (max-width: 1100px) and (min-width: 761px) {
+  .archipelago-map {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 760px) {
+  .archipelago-map {
+    grid-template-columns: 1fr;
+    align-items: initial;
+    gap: 12px;
+    width: min(520px, calc(100% - 24px));
+    min-height: auto;
+    margin-top: 0;
+    padding: 48px 0 74px;
+  }
 }
 </style>
