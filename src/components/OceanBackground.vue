@@ -26,33 +26,46 @@
 
 <style scoped>
 .ocean-background {
+  /* ⬅️ MODIFICADO: subí el mar. Aumentá este valor para subirlo más, bajalo para devolverlo. */
+  --horizon-shift: 8%;
+
   position: absolute;
   inset: 0;
   z-index: -1;
   overflow: hidden;
-  background: linear-gradient(to bottom, var(--sky-top) 0%, var(--sky-horizon) 39%, var(--ocean-far) 40%, color-mix(in oklab, var(--ocean-near) 88%, var(--ocean-silt)) 72%, var(--ocean-deep) 100%);
+  /* ⬅️ MODIFICADO: los stops del degradado ahora siguen a --horizon-shift */
+  background: linear-gradient(to bottom,
+    var(--sky-top) 0%,
+    var(--sky-horizon) calc(39% - var(--horizon-shift)),
+    var(--ocean-far) calc(40% - var(--horizon-shift)),
+    color-mix(in oklab, var(--ocean-near) 88%, var(--ocean-silt)) calc(72% - var(--horizon-shift)),
+    var(--ocean-deep) 100%);
 }
 
 .ocean-horizon {
   position: absolute;
-  top: 39.5%;
+  /* ⬅️ MODIFICADO */
+  top: calc(39.5% - var(--horizon-shift));
   width: 100%;
   height: 2px;
   background: color-mix(in oklab, var(--shore) 65%, transparent);
 }
 
 .ocean-wave { position: absolute; left: -5%; width: 110%; fill: var(--ocean-far); animation: ocean-drift 13s ease-in-out infinite alternate; }
-.ocean-wave--far { top: 38%; height: 17%; opacity: .72; }
-.ocean-wave--near { top: 49%; height: 22%; fill: var(--ocean-deep); opacity: .25; animation-duration: 17s; animation-direction: alternate-reverse; }
+/* ⬅️ MODIFICADO: top de ambas olas */
+.ocean-wave--far { top: calc(38% - var(--horizon-shift)); height: 17%; opacity: .72; }
+.ocean-wave--near { top: calc(49% - var(--horizon-shift)); height: 22%; fill: var(--ocean-deep); opacity: .25; animation-duration: 17s; animation-direction: alternate-reverse; }
 
 .ocean-current { position: absolute; left: -9%; width: 118%; overflow: visible; fill: none; stroke: var(--ocean-glint); stroke-width: 2; stroke-linecap: round; opacity: .42; animation: current-flow 16s ease-in-out infinite alternate; }
 .ocean-current path:nth-child(2) { opacity: .46; stroke-width: 1.25; }
-.ocean-current--one { top: 48%; height: 22%; }
-.ocean-current--two { top: 68%; height: 26%; opacity: .25; animation-duration: 23s; animation-direction: alternate-reverse; }
+/* ⬅️ MODIFICADO: top de ambas corrientes */
+.ocean-current--one { top: calc(48% - var(--horizon-shift)); height: 22%; }
+.ocean-current--two { top: calc(68% - var(--horizon-shift)); height: 26%; opacity: .25; animation-duration: 23s; animation-direction: alternate-reverse; }
 
-.ocean-ripples { position: absolute; inset: 51% -5% 0; opacity: .2; background-image: repeating-linear-gradient(174deg, transparent 0 28px, var(--shore) 29px 30px, transparent 31px 56px); background-size: 100% 120px; animation: ocean-drift 20s ease-in-out infinite alternate-reverse; }
-.ocean-caustics { position: absolute; inset: 47% -8% -8%; opacity: .22; background-image: radial-gradient(ellipse at 18% 18%, transparent 0 34%, var(--ocean-glint) 35% 36%, transparent 37% 100%), radial-gradient(ellipse at 73% 44%, transparent 0 38%, var(--ocean-glint) 39% 40%, transparent 41% 100%); background-size: 330px 150px, 440px 190px; animation: water-shimmer 12s ease-in-out infinite alternate; mix-blend-mode: soft-light; }
-.ocean-haze { position: absolute; inset: 43% -5% -5%; background: radial-gradient(ellipse at 24% 22%, var(--ocean-silt), transparent 36%), radial-gradient(ellipse at 76% 56%, color-mix(in oklab, var(--ocean-silt) 70%, transparent), transparent 43%); filter: blur(28px); animation: silt-breathe 18s ease-in-out infinite; mix-blend-mode: soft-light; pointer-events: none; }
+/* ⬅️ MODIFICADO: inset superior de ripples / caustics / haze */
+.ocean-ripples { position: absolute; inset: calc(51% - var(--horizon-shift)) -5% 0; opacity: .2; background-image: repeating-linear-gradient(174deg, transparent 0 28px, var(--shore) 29px 30px, transparent 31px 56px); background-size: 100% 120px; animation: ocean-drift 20s ease-in-out infinite alternate-reverse; }
+.ocean-caustics { position: absolute; inset: calc(47% - var(--horizon-shift)) -8% -8%; opacity: .22; background-image: radial-gradient(ellipse at 18% 18%, transparent 0 34%, var(--ocean-glint) 35% 36%, transparent 37% 100%), radial-gradient(ellipse at 73% 44%, transparent 0 38%, var(--ocean-glint) 39% 40%, transparent 41% 100%); background-size: 330px 150px, 440px 190px; animation: water-shimmer 12s ease-in-out infinite alternate; mix-blend-mode: soft-light; }
+.ocean-haze { position: absolute; inset: calc(43% - var(--horizon-shift)) -5% -5%; background: radial-gradient(ellipse at 24% 22%, var(--ocean-silt), transparent 36%), radial-gradient(ellipse at 76% 56%, color-mix(in oklab, var(--ocean-silt) 70%, transparent), transparent 43%); filter: blur(28px); animation: silt-breathe 18s ease-in-out infinite; mix-blend-mode: soft-light; pointer-events: none; }
 
 .gull { position: absolute; width: 38px; fill: none; stroke: var(--label-ink); stroke-width: 2; stroke-linecap: round; opacity: .32; animation: gull-drift 18s ease-in-out infinite; }
 .gull--one { top: 16%; left: 13%; }
@@ -83,10 +96,15 @@
 }
 
 @media (max-width: 760px) {
-  .ocean-horizon { top: 33%; }
-  .ocean-wave--far { top: 32%; }
-  .ocean-wave--near { top: 43%; }
-  .ocean-ripples { inset-block-start: 44%; }
+  .ocean-background {
+    /* ⬅️ MODIFICADO: en móvil el horizonte ya está más arriba, subo menos */
+    --horizon-shift: 4%;
+  }
+  /* ⬅️ MODIFICADO: los overrides de móvil también siguen la variable */
+  .ocean-horizon { top: calc(33% - var(--horizon-shift)); }
+  .ocean-wave--far { top: calc(32% - var(--horizon-shift)); }
+  .ocean-wave--near { top: calc(43% - var(--horizon-shift)); }
+  .ocean-ripples { inset-block-start: calc(44% - var(--horizon-shift)); }
   .gull--one { left: 7%; }
   .gull--three { display: none; }
 }

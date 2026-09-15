@@ -102,19 +102,6 @@ function openIslandInfo(islandId: string) {
   ui.showIslandInfo(islandId, { onSuccess: loadModules });
 }
 
-function confirmModuleDeletion(module: FinanceModule) {
-  if (module.isSystem) return;
-  ui.showModal(`¿Eliminar el archipiélago “${module.moduleName}”? Esta acción no se puede deshacer.`, "Eliminar archipiélago", "", {
-    showActionButton: true,
-    buttonText: "Eliminar",
-    showCancelButton: true,
-    onConfirm: async () => {
-      await modulesService.destroy(module.id);
-      await loadModules();
-    },
-  });
-}
-
 const clusterCountStyle = computed(() => ({
   "--cluster-count": String(modules.value.length || 1),
 }));
@@ -248,7 +235,6 @@ onUnmounted(() => {
             @add-island="openIslandForm(mod.id)"
             @select-island="openIslandInfo"
             @edit-module="openModuleForm({ id: mod.id, name: mod.moduleName, type: mod.moduleType })"
-            @delete-module="confirmModuleDeletion(mod)"
           />
         </div>
       </div>
@@ -415,13 +401,14 @@ onUnmounted(() => {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: end;
   gap: clamp(12px, 3vw, 54px);
   width: min(1180px, calc(100% - 40px));
   min-height: 470px;
   margin: -22px auto 0;
   padding: 68px 0 54px;
+  transform: translate3d(0, 7rem, 0); /* ⬅️ MODIFICADO: era 9rem, subí las islas 3rem */
 }
 
 @media (max-width: 1100px) and (min-width: 761px) {
