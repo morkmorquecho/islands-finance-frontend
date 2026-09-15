@@ -27,7 +27,7 @@
 <style scoped>
 .ocean-background {
   /* ⬅️ MODIFICADO: subí el mar. Aumentá este valor para subirlo más, bajalo para devolverlo. */
-  --horizon-shift: 8%;
+  --horizon-shift: var(--ocean-horizon-shift, 8%);
 
   position: absolute;
   inset: 0;

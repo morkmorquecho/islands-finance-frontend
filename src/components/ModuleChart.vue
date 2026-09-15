@@ -1,8 +1,17 @@
 <script setup lang="ts">
-defineProps<{
+import { computed } from "vue";
+
+type ChartEntry = {
+  id?: string | number;
+  name: string;
+  value: number;
+  tintVar: string;
+};
+
+const props = defineProps<{
   moduleName: string;
   total: number;
-  entries: { name: string; value: number; tintVar: string }[];
+  entries: ChartEntry[];
 }>();
 
 const currency = new Intl.NumberFormat("es-MX", {
@@ -10,48 +19,193 @@ const currency = new Intl.NumberFormat("es-MX", {
   currency: "MXN",
   maximumFractionDigits: 0,
 });
+
+const moduleTotal = computed(() =>
+  Math.max(0, Number(props.total) || 0),
+);
+
+const islandEntries = computed(() =>
+  props.entries.map((entry, index) => ({
+    ...entry,
+    id: entry.id ?? `${entry.name}-${index}`,
+    value: Math.max(0, Number(entry.value) || 0),
+  })),
+);
+
+function islandPercentage(value: number) {
+  if (!moduleTotal.value) return 0;
+
+  return Math.min(
+    100,
+    Math.max(0, (value / moduleTotal.value) * 100),
+  );
+}
 </script>
 
 <template>
   <article class="module-chart">
-    <div class="module-chart-head">
-      <h3 class="module-chart-title">{{ moduleName }}</h3>
-      <span class="module-chart-total">{{ currency.format(total) }}</span>
-    </div>
-    <div class="module-chart-bars">
-      <div class="module-chart-row" v-for="entry in entries" :key="entry.name">
-        <span>{{ entry.name }}</span>
-        <span class="module-chart-track">
+    <header class="module-chart-header">
+      <div>
+        <p class="module-chart-eyebrow">Archipiélago</p>
+
+        <h3 class="module-chart-title">
+          {{ moduleName }}
+        </h3>
+      </div>
+
+      <strong class="module-chart-total">
+        {{ currency.format(moduleTotal) }}
+      </strong>
+    </header>
+
+    <div
+      v-if="islandEntries.length"
+      class="module-chart-islands"
+    >
+      <div
+        v-for="entry in islandEntries"
+        :key="entry.id"
+        class="island-stat"
+      >
+        <div class="island-stat-header">
+          <span class="island-stat-name">
+            {{ entry.name }}
+          </span>
+
+          <strong class="island-stat-value">
+            {{ currency.format(entry.value) }}
+          </strong>
+        </div>
+
+        <div
+          class="island-stat-track"
+          role="progressbar"
+          :aria-label="`Proporción de ${entry.name}`"
+          :aria-valuenow="islandPercentage(entry.value)"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
           <span
-            class="module-chart-fill"
-            :style="{ width: `${Math.round((entry.value / total) * 100)}%`, background: entry.tintVar }"
+            class="island-stat-fill"
+            :style="{
+              width: `${islandPercentage(entry.value)}%`,
+              background: entry.tintVar,
+            }"
           />
-        </span>
-        <span class="module-chart-value">{{ currency.format(entry.value) }}</span>
+        </div>
       </div>
     </div>
+
+    <p v-else class="module-chart-empty">
+      No hay islas con información disponible.
+    </p>
   </article>
 </template>
 
 <style scoped>
 .module-chart {
-  padding: 20px 22px 18px;
+  width: 100%;
+  min-width: 0;
+  min-height: 190px;
+  padding: 20px;
   border-radius: calc(var(--radius) * 1.4);
-  background: color-mix(in oklab, var(--label) 92%, transparent);
-  box-shadow: 0 14px 34px -18px color-mix(in oklab, black 55%, transparent);
   color: var(--label-ink);
+  background: color-mix(in oklab, var(--label) 94%, transparent);
+  box-shadow: 0 18px 42px -24px rgb(0 0 0 / 65%);
 }
-.module-chart-head {
+
+.module-chart-header {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  margin: 0 0 14px;
+  gap: 18px;
+  margin-bottom: 22px;
 }
-.module-chart-title { margin: 0; font-family: var(--font-display); font-size: 18px; }
-.module-chart-total { font-variant-numeric: tabular-nums; font-weight: 700; }
-.module-chart-bars { display: flex; flex-direction: column; gap: 10px; }
-.module-chart-row { display: grid; grid-template-columns: 84px 1fr auto; align-items: center; gap: 10px; font-size: 12.5px; }
-.module-chart-track { height: 8px; border-radius: 999px; background: color-mix(in oklab, var(--rock) 14%, transparent); overflow: hidden; }
-.module-chart-fill { display: block; height: 100%; border-radius: 999px; }
-.module-chart-value { font-variant-numeric: tabular-nums; text-align: right; }
+
+.module-chart-eyebrow {
+  margin: 0 0 4px;
+  color: color-mix(in oklab, var(--label-ink) 58%, transparent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.module-chart-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.module-chart-total {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+
+.module-chart-islands {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.island-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.island-stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.island-stat-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.island-stat-value {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.island-stat-track {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--rock) 22%, transparent);
+}
+
+.island-stat-fill {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: inherit;
+  transition: width 350ms ease;
+}
+
+.module-chart-empty {
+  margin: 0;
+  color: color-mix(in oklab, var(--label-ink) 58%, transparent);
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .module-chart-header {
+    gap: 12px;
+  }
+
+  .module-chart-total {
+    font-size: 15px;
+  }
+}
 </style>
