@@ -13,7 +13,6 @@ const TYPE_PRESETS = [
   { value: 'emergency', label: 'Emergencia' },
   { value: 'leisure', label: 'Ocio' },
   { value: 'debt', label: 'Deudas' },
-  { value: 'other', label: 'Otro' },
 ]
 
 const existingModule = computed(() => props.payload?.module ?? null)
@@ -88,12 +87,6 @@ async function deleteModule() {
       </div>
     </div>
 
-    <div class="field" v-if="form.type === 'other'">
-      <label for="module-custom-type">Describe el motivo</label>
-      <div class="input-shell">
-        <input id="module-custom-type" v-model="form.customType" type="text" placeholder="ej. Boda" required />
-      </div>
-    </div>
 
     <p v-if="errorMsg" class="error-message">{{ errorMsg }}</p>
 
