@@ -43,6 +43,11 @@ function handleIslandDeleted() {
   modal.value.formPayload?.onSuccess?.()
   ui.closeModal()
 }
+
+function handleModuleDeleted() {
+  modal.value.formPayload?.onSuccess?.()
+  ui.closeModal()
+}
 </script>
 
 <template>
@@ -81,6 +86,7 @@ function handleIslandDeleted() {
                   :payload="modal.formPayload"
                   @success="handleFormSuccess"
                   @cancel="ui.closeModal()"
+                  @deleted="handleModuleDeleted"
                 />
                 <IslandForm
                   v-else-if="modal.formType === 'island'"

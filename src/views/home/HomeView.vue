@@ -186,6 +186,30 @@ onUnmounted(() => {
   window.removeEventListener("scroll", onScroll);
   window.removeEventListener("resize", onScroll);
 });
+
+
+async function deleteModule(moduleId) {
+  ui.showModal(
+    "¿Seguro que quieres eliminar este archipiélago?",
+    "Eliminar archipiélago",
+    "",
+    {
+      showActionButton: true,
+      buttonText: "Eliminar",
+      showCancelButton: true,
+      onConfirm: async () => {
+        try {
+          await modulesService.destroy(moduleId);
+          await loadModules();
+        } catch (err) {
+          modulesError.value = err.message ?? "No se pudo eliminar el archipiélago.";
+        } finally {
+          ui.closeModal();
+        }
+      },
+    }
+  );
+}
 </script>
 
 <template>
@@ -235,6 +259,7 @@ onUnmounted(() => {
             @add-island="openIslandForm(mod.id)"
             @select-island="openIslandInfo"
             @edit-module="openModuleForm({ id: mod.id, name: mod.moduleName, type: mod.moduleType })"
+            @delete-module="deleteModule(mod.id)"
           />
         </div>
       </div>
