@@ -15,7 +15,6 @@ const emit = defineEmits<{
   (e: "add-island"): void;
   (e: "select-island", islandId: string): void;
   (e: "edit-module"): void;
-  (e: "delete-module"): void;
 }>();
 
 const compact = computed(() => props.islands.length > 4);
@@ -24,12 +23,17 @@ const compact = computed(() => props.islands.length > 4);
 <template>
   <section :class="`module-cluster module-cluster--${islands.length}`" :aria-label="moduleName">
     <div class="module-tag-row">
-      <h2 :class="`module-tag module-tag--${accentColor}`">{{ moduleName }}</h2>
+      <button
+        v-if="!isSystem"
+        :class="`module-tag module-tag--${accentColor}`"
+        type="button"
+        :aria-label="`Editar archipiélago ${moduleName}`"
+        @click="emit('edit-module')"
+      >
+        {{ moduleName }}
+      </button>
+      <h2 v-else :class="`module-tag module-tag--${accentColor}`">{{ moduleName }}</h2>
       <button class="add-island-btn" type="button" aria-label="Agregar isla" @click="emit('add-island')">+</button>
-      <template v-if="!isSystem">
-        <button class="module-action-btn" type="button" aria-label="Editar archipiélago" @click="emit('edit-module')">Editar</button>
-        <button class="module-action-btn module-action-btn--danger" type="button" aria-label="Eliminar archipiélago" @click="emit('delete-module')">Eliminar</button>
-      </template>
     </div>
     <div class="module-reef">
       <Island
@@ -105,6 +109,9 @@ const compact = computed(() => props.islands.length > 4);
   margin-bottom: 12px;
 }
 .module-tag { margin: 0; }
+.module-tag[type="button"] { border: 0; cursor: pointer; transition: transform 140ms ease, box-shadow 140ms ease; }
+.module-tag[type="button"]:hover { transform: translateY(-1px); box-shadow: 0 4px 0 color-mix(in oklab, var(--foreground) 16%, transparent); }
+.module-tag[type="button"]:focus-visible { outline: 3px solid var(--tag-coral); outline-offset: 3px; }
 
 .add-island-btn {
   display: grid;
@@ -121,7 +128,5 @@ const compact = computed(() => props.islands.length > 4);
   transition: transform 140ms ease;
 }
 .add-island-btn:hover { transform: scale(1.12); }
-.module-action-btn { border: 0; padding: 3px 6px; border-radius: 6px; color: var(--ocean-deep); background: color-mix(in oklab, var(--label) 75%, transparent); font: 700 10px var(--font-sans); cursor: pointer; }
-.module-action-btn--danger { color: #a13d30; }
 </style>
 

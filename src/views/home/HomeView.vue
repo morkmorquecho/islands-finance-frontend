@@ -259,7 +259,6 @@ async function deleteModule(moduleId) {
             @add-island="openIslandForm(mod.id)"
             @select-island="openIslandInfo"
             @edit-module="openModuleForm({ id: mod.id, name: mod.moduleName, type: mod.moduleType })"
-            @delete-module="deleteModule(mod.id)"
           />
         </div>
       </div>
