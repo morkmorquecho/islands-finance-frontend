@@ -55,6 +55,18 @@ const routes = [
     name: 'not-found',
     component: () => import('@/views/NotFoundView.vue'),
   },
+    {
+    path: '/expenses',
+    name: 'expenses',
+    component: () => import('@/views/ExpensesView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/goals',
+    name: 'goals',
+    component: () => import('@/views/GoalsView.vue'),
+    meta: { requiresAuth: true },
+  },
 ]
 
 const router = createRouter({

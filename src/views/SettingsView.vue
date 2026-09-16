@@ -112,6 +112,17 @@ async function handleLogout() {
       </div>
     </RouterLink>
 
+    <RouterLink class="settings-card analytics-link" :to="{ name: 'goals' }">
+      <div class="card-heading">
+        <div>
+          <p class="card-kicker">Tus metas</p>
+          <h2>Objetivos de ahorro</h2>
+          <p class="settings-note">Crea, edita y da seguimiento a tus objetivos recurrentes.</p>
+        </div>
+        <span aria-hidden="true">→</span>
+      </div>
+    </RouterLink>
+
     <!-- Cambiar contraseña -->
     <section class="settings-card" aria-labelledby="pw-title">
       <div class="card-heading">
