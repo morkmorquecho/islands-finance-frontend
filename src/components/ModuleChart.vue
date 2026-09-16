@@ -5,7 +5,7 @@ type ChartEntry = {
   id?: string | number;
   name: string;
   value: number;
-  tintVar: string;
+  tintVar?: string;
 };
 
 const props = defineProps<{
@@ -20,16 +20,47 @@ const currency = new Intl.NumberFormat("es-MX", {
   maximumFractionDigits: 0,
 });
 
+const BRAND_PALETTE = [
+  "#2FA36B",
+  "#0B4F6C",
+  "#4C7CE0",
+  "#5EC2C7",
+  "#F4B740",
+  "#3FA7A0",
+  "#FF8A65",
+  "#8A40DA",
+  "#E85D75",
+  "#F2994A",
+];
+
+function isValidColor(value?: string) {
+  if (!value) return false;
+
+  return (
+    /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ||
+    value.startsWith("var(")
+  );
+}
+
+function colorForEntry(entry: ChartEntry) {
+  return entry.tintVar || "var(--tint-default)";
+}
+
 const moduleTotal = computed(() =>
   Math.max(0, Number(props.total) || 0),
 );
 
 const islandEntries = computed(() =>
-  props.entries.map((entry, index) => ({
-    ...entry,
-    id: entry.id ?? `${entry.name}-${index}`,
-    value: Math.max(0, Number(entry.value) || 0),
-  })),
+  props.entries.map((entry, index) => {
+    const id = entry.id ?? `${entry.name}-${index}`;
+
+    return {
+      ...entry,
+      id,
+      value: Math.max(0, Number(entry.value) || 0),
+      color: colorForEntry(entry),
+    };
+  }),
 );
 
 function islandPercentage(value: number) {
@@ -89,7 +120,7 @@ function islandPercentage(value: number) {
             class="island-stat-fill"
             :style="{
               width: `${islandPercentage(entry.value)}%`,
-              background: entry.tintVar,
+              backgroundColor: entry.color,
             }"
           />
         </div>

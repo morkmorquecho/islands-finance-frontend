@@ -4,11 +4,11 @@ import OceanBackground from "../../components/OceanBackground.vue";
 import SeabedBackground from "../../components/SeabedBackground.vue";
 import ModuleCluster from "../../components/ModuleCluster.vue";
 import ModuleChart from "../../components/ModuleChart.vue";
-import { BRAND_TINTS, type IslandAccount } from "../../types/brand-tints";
 import { useUIStore } from "@/stores/ui";
 import { useAuthStore } from "@/stores/auth";
 import modulesService from "@/services/modules.service";
 import islandsService from "@/services/islands.service";
+import type { IslandAccount } from "../../types/brand-tints";
 
 type ChartEntry = {
   id: string;
@@ -75,27 +75,8 @@ function getResults(payload: any): any[] {
   return [];
 }
 
-function tintForIsland(island: any) {
-  return (
-    BRAND_TINTS[island.template as keyof typeof BRAND_TINTS] ??
-    BRAND_TINTS.default
-  );
-}
-
-function tintVariableForIsland(island: any) {
-  const template = String(
-    island.template ??
-      island.brand ??
-      island.provider ??
-      "",
-  ).toLowerCase();
-
-  if (template.includes("nu")) return "var(--tint-nu)";
-  if (template.includes("mercado")) return "var(--tint-mercado-pago)";
-  if (template.includes("revolut")) return "var(--tint-revolut)";
-  if (template.includes("cetes")) return "var(--tint-cetes)";
-
-  return "var(--tint-default)";
+function colorForIsland(island: any) {
+  return island.color || "#94A3B8"; // hex fallback en vez de var(--tint-default)
 }
 
 function islandValue(island: any) {
@@ -148,19 +129,16 @@ async function loadModules() {
         const islands = islandResults.map((island: any) => ({
           id: String(island.id),
           name: island.name,
-          brandTint: tintForIsland(island),
+          brandTint: colorForIsland(island), // antes: tintForIsland(island)
           isSystem: Boolean(island.is_system ?? island.isSystem),
         }));
 
         const chartEntries: ChartEntry[] = islandResults.map(
           (island: any, islandIndex: number) => ({
             id: String(island.id ?? `${mod.id}-${islandIndex}`),
-            name:
-              island.name ??
-              island.title ??
-              `Isla ${islandIndex + 1}`,
+            name: island.name ?? island.title ?? `Isla ${islandIndex + 1}`,
             value: islandValue(island),
-            tintVar: tintVariableForIsland(island),
+            tintVar: colorForIsland(island), // antes: tintVariableForIsland(island)
           }),
         );
 

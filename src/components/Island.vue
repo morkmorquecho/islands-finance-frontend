@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, useId } from "vue";
-import type { BrandTint } from "../types/brand-tints";
 
 const props = withDefaults(
   defineProps<{
     name: string;
-    brandTint: BrandTint;
+    brandTint: string;
     animationDelay?: number;
     variant?: number;
     compact?: boolean;
@@ -16,10 +15,12 @@ const props = withDefaults(
     variant: 0,
     compact: false,
     vegetation: false,
-  }
+  },
 );
 
-const emit = defineEmits<{ (e: "select"): void }>();
+const emit = defineEmits<{
+  (event: "select"): void;
+}>();
 
 const COASTS = [
   "M10 65 C15 59 19 57 18 50 C17 45 22 43 28 42 C34 41 34 33 40 29 C46 26 52 30 57 24 C62 18 67 16 73 19 C79 22 81 13 88 12 C95 11 98 20 105 19 C113 18 116 25 121 29 C127 33 136 31 138 39 C140 45 150 45 152 51 C154 57 145 61 150 66 C157 72 148 78 141 76 C134 74 133 84 126 87 C119 90 113 82 106 87 C99 92 94 88 88 92 C80 98 74 90 67 91 C60 92 56 84 50 85 C43 86 39 80 32 82 C27 83 28 75 22 73 C16 71 12 72 10 65 Z",
@@ -39,8 +40,7 @@ const LANDMASSES = [
   "M27 57 C34 50 42 46 49 44 C56 41 59 34 66 32 C73 30 78 35 84 29 C90 24 96 28 101 31 C108 35 112 31 119 36 C126 41 129 44 134 48 C138 53 132 57 136 62 C140 67 132 71 126 73 C120 75 117 81 110 79 C103 77 98 84 92 82 C85 80 80 85 73 82 C66 79 60 81 54 78 C48 75 44 71 38 71 C33 71 32 65 28 64 C24 62 24 59 27 57 Z",
 ];
 
-const id = useId().replaceAll(":", "");
-
+const islandId = useId().replaceAll(":", "");
 const shapeIndex = computed(() => props.variant % COASTS.length);
 const coast = computed(() => COASTS[shapeIndex.value]);
 const landmass = computed(() => LANDMASSES[shapeIndex.value]);
@@ -49,7 +49,7 @@ const landmass = computed(() => LANDMASSES[shapeIndex.value]);
 <template>
   <figure
     :class="['finance-island', { 'finance-island--compact': compact }]"
-    :style="{ '--island-delay': `${animationDelay}s` }"
+    :style="{ '--island-delay': `${animationDelay}s`, '--caption-color': brandTint }"
     tabindex="0"
     role="link"
     :aria-label="`Ver información de ${name}`"
@@ -59,7 +59,7 @@ const landmass = computed(() => LANDMASSES[shapeIndex.value]);
   >
     <svg viewBox="0 0 168 112" role="img" aria-hidden="true">
       <defs>
-        <clipPath :id="`coast-${id}`">
+        <clipPath :id="`coast-${islandId}`">
           <path :d="coast" />
         </clipPath>
       </defs>
@@ -69,15 +69,17 @@ const landmass = computed(() => LANDMASSES[shapeIndex.value]);
         :d="coast"
         transform="translate(0 7) scale(1 1.02)"
       />
+
       <path
         class="island-waterline island-waterline--inner"
         :d="coast"
         transform="translate(0 3)"
       />
+
       <path class="island-sand" :d="coast" />
 
-      <g :clip-path="`url(#coast-${id})`">
-        <path :class="`island-land island-land--${brandTint}`" :d="landmass" />
+      <g :clip-path="`url(#coast-${islandId})`">
+        <path class="island-land" :d="landmass" />
 
         <path
           class="island-shore"
@@ -91,11 +93,13 @@ const landmass = computed(() => LANDMASSES[shapeIndex.value]);
           d="M40 58 C47 50 54 46 64 45 C72 44 75 36 85 36
              C94 36 98 31 108 35 C114 38 119 38 125 41"
         />
+
         <path
           class="island-contour island-contour--two"
           d="M50 66 C58 57 67 54 76 55 C84 56 87 47 97 48
              C105 49 110 44 119 49"
         />
+
         <path
           class="island-contour island-contour--three"
           d="M63 71 C71 65 80 63 87 65 C95 67 99 58 108 60 C113 61 117 61 121 64"
@@ -117,11 +121,13 @@ const landmass = computed(() => LANDMASSES[shapeIndex.value]);
         d="M131 37 C136 39 141 43 146 48 C149 52 146 57 143 60
            C140 57 137 56 138 51 C139 47 136 44 132 43 Z"
       />
+
       <path
         class="island-rock"
         d="M142 76 C145 72 148 69 151 70 C155 72 157 75 155 79
            C153 82 148 83 145 81 Z"
       />
+
       <path
         class="island-pebble"
         d="M18 78 C20 75 23 73 26 75 C29 76 30 79 28 82
@@ -133,7 +139,10 @@ const landmass = computed(() => LANDMASSES[shapeIndex.value]);
       <g v-if="vegetation" class="island-palm" transform="translate(79 35)">
         <path class="palm-shadow" d="M-13 29 C-5 26 9 25 20 29" />
         <path class="palm-trunk" d="M0 29 C4 21 3 12 8 2" />
-        <path class="palm-trunk-detail" d="M2 23 C4 23 5 24 6 24 M4 17 C6 17 7 18 8 18 M5 11 C7 11 8 12 9 12" />
+        <path
+          class="palm-trunk-detail"
+          d="M2 23 C4 23 5 24 6 24 M4 17 C6 17 7 18 8 18 M5 11 C7 11 8 12 9 12"
+        />
         <path
           class="palm-frond"
           d="M8 3 C1-4-8-3-15 3
@@ -162,85 +171,223 @@ const landmass = computed(() => LANDMASSES[shapeIndex.value]);
 </template>
 
 <style scoped>
+.finance-island {
+  width: min(170px, 48%);
+  margin: -5px -7px 7px;
+  outline: none;
+  cursor: pointer;
+  animation: island-bob 7s ease-in-out infinite;
+  animation-delay: var(--island-delay);
+}
 
+.finance-island:focus-visible {
+  outline: 3px solid var(--tag-coral);
+  outline-offset: 4px;
+}
+
+.finance-island:nth-child(even) {
+  margin-top: 45px;
+}
+
+.finance-island--compact {
+  width: 33%;
+  margin-inline: 0;
+}
+
+.finance-island svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+  filter: drop-shadow(
+    0 9px 6px color-mix(in oklab, var(--ocean-deep) 19%, transparent)
+  );
+}
+
+.finance-island:hover svg {
+  filter: drop-shadow(
+    0 12px 8px color-mix(in oklab, var(--ocean-deep) 30%, transparent)
+  );
+}
+
+.finance-island figcaption {
+  width: fit-content;
+  max-width: 90%;
+  margin: -2px auto 0;
+  padding: 4px 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  color: var(--label-ink);
+  background: var(--label);
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--foreground) 12%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.finance-island:hover figcaption,
+.finance-island:focus-visible figcaption {
+  color: var(--caption-color);
+  background: color-mix(in oklab, var(--caption-color) 12%, var(--label));
+  box-shadow: 0 2px 0 color-mix(in oklab, var(--caption-color) 35%, transparent);
+}
+
+.island-waterline {
+  fill: none;
+  stroke-linejoin: bevel;
+}
+
+.island-waterline--outer {
+  stroke: var(--reef);
+  stroke-width: 7;
+  opacity: 0.62;
+}
+
+.island-waterline--inner {
+  stroke: color-mix(in oklab, var(--shore) 76%, transparent);
+  stroke-width: 2;
+  opacity: 0.76;
+}
+
+.island-sand {
+  fill: var(--sand);
+  stroke: color-mix(in oklab, var(--rock) 34%, var(--sand));
+  stroke-width: 1.4;
+  stroke-linejoin: bevel;
+}
+
+.island-land {
+  fill: var(--reef);
+  stroke: color-mix(in oklab, var(--rock) 25%, transparent);
+  stroke-width: 1.1;
+  stroke-linejoin: bevel;
+}
+
+.island-shore {
+  fill: none;
+  stroke: var(--shore);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  opacity: 0.72;
+}
+
+.island-contour {
+  fill: none;
+  stroke: color-mix(in oklab, var(--rock) 43%, transparent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.island-contour--one {
+  stroke-width: 1.15;
+  opacity: 0.66;
+}
+
+.island-contour--two {
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.island-contour--three {
+  stroke-width: 0.85;
+  opacity: 0.4;
+}
+
+.island-hatch {
+  fill: none;
+  stroke: color-mix(in oklab, var(--rock) 34%, transparent);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+  opacity: 0.46;
+}
+
+.island-cliff {
+  fill: var(--rock);
+  opacity: 0.78;
+}
+
+.island-rock {
+  fill: var(--rock);
+  opacity: 0.66;
+}
+
+.island-pebble {
+  fill: color-mix(in oklab, var(--rock) 68%, var(--sand));
+  opacity: 0.72;
+}
+
+.island-palm {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.86;
+}
+
+.palm-shadow {
+  stroke: color-mix(in oklab, var(--rock) 28%, transparent);
+  stroke-width: 3;
+  opacity: 0.5;
+}
+
+.palm-trunk {
+  stroke: color-mix(in oklab, var(--rock) 88%, var(--label-ink));
+  stroke-width: 2.6;
+}
+
+.palm-trunk-detail {
+  stroke: color-mix(in oklab, var(--sand) 52%, var(--rock));
+  stroke-width: 0.8;
+}
+
+.palm-frond {
+  stroke: color-mix(in oklab, var(--label-ink) 68%, var(--tint-default));
+  stroke-width: 2.1;
+}
+
+.palm-leaflets {
+  stroke: color-mix(in oklab, var(--label-ink) 50%, var(--tint-default));
+  stroke-width: 0.8;
+  opacity: 0.8;
+}
+
+.palm-crown {
+  fill: var(--rock);
+  stroke: none;
+}
+
+@keyframes island-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@media (max-width: 760px) {
   .finance-island {
-    width: min(170px, 48%);
-    margin: -5px -7px 7px;
-    outline: none;
-    cursor: pointer;
-    animation: island-bob 7s ease-in-out infinite;
-    animation-delay: var(--island-delay);
-  }
-  .finance-island:focus-visible {
-    outline: 3px solid var(--tag-coral);
-    outline-offset: 4px;
-  }
-  .finance-island:nth-child(even) { margin-top: 45px; }
-  .finance-island--compact { width: 33%; margin-inline: 0; }
-  .finance-island svg {
-    display: block;
-    width: 100%;
-    overflow: visible;
-    filter: drop-shadow(0 9px 6px color-mix(in oklab, var(--ocean-deep) 19%, transparent));
-  }
-  .finance-island figcaption {
-    width: fit-content;
-    max-width: 90%;
-    margin: -2px auto 0;
-    padding: 4px 9px;
-    overflow: hidden;
-    border-radius: 999px;
-    color: var(--label-ink);
-    background: var(--label);
-    box-shadow: 0 1px 0 color-mix(in oklab, var(--foreground) 12%, transparent);
-    font-size: 11px;
-    font-weight: 600;
-    text-align: center;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .finance-island:hover svg { filter: drop-shadow(0 12px 8px color-mix(in oklab, var(--ocean-deep) 30%, transparent)); }
-
-  .island-waterline { fill: none; stroke-linejoin: bevel; }
-  .island-waterline--outer { stroke: color-mix(in oklab, var(--reef) 72%, transparent); stroke-width: 7; opacity: .62; }
-  .island-waterline--inner { stroke: color-mix(in oklab, var(--shore) 76%, transparent); stroke-width: 2; opacity: .76; }
-  .island-sand { fill: color-mix(in oklab, var(--sand) 90%, var(--label)); stroke: color-mix(in oklab, var(--rock) 34%, var(--sand)); stroke-width: 1.4; stroke-linejoin: bevel; }
-  .island-land { stroke: color-mix(in oklab, var(--rock) 25%, transparent); stroke-width: 1.1; stroke-linejoin: bevel; }
-  .island-land--default { fill: color-mix(in oklab, var(--tint-default) 76%, var(--sand)); }
-  .island-land--nu { fill: color-mix(in oklab, var(--tint-nu) 18%, var(--tint-default)); }
-  .island-land--mercado-pago { fill: color-mix(in oklab, var(--tint-mercado-pago) 20%, var(--tint-default)); }
-  .island-land--revolut { fill: color-mix(in oklab, var(--tint-revolut) 17%, var(--tint-default)); }
-  .island-land--cetes { fill: color-mix(in oklab, var(--tint-cetes) 24%, var(--tint-default)); }
-  .island-shore { fill: none; stroke: var(--shore); stroke-width: 1.8; stroke-linecap: round; opacity: .72; }
-  .island-contour { fill: none; stroke: color-mix(in oklab, var(--rock) 43%, transparent); stroke-linecap: round; stroke-linejoin: round; }
-  .island-contour--one { stroke-width: 1.15; opacity: .66; }
-  .island-contour--two { stroke-width: 1; opacity: .5; }
-  .island-contour--three { stroke-width: .85; opacity: .4; }
-  .island-hatch { fill: none; stroke: color-mix(in oklab, var(--rock) 34%, transparent); stroke-width: .8; stroke-linecap: round; opacity: .46; }
-  .island-cliff { fill: var(--rock); opacity: .78; }
-  .island-rock { fill: var(--rock); opacity: .66; }
-  .island-pebble { fill: color-mix(in oklab, var(--rock) 68%, var(--sand)); opacity: .72; }
-  .island-palm { fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: .86; }
-
-  .palm-shadow { stroke: color-mix(in oklab, var(--rock) 28%, transparent); stroke-width: 3; opacity: .5; }
-  .palm-trunk { stroke: color-mix(in oklab, var(--rock) 88%, var(--label-ink)); stroke-width: 2.6; }
-  .palm-trunk-detail { stroke: color-mix(in oklab, var(--sand) 52%, var(--rock)); stroke-width: .8; }
-  .palm-frond { stroke: color-mix(in oklab, var(--label-ink) 68%, var(--tint-default)); stroke-width: 2.1; }
-  .palm-leaflets { stroke: color-mix(in oklab, var(--label-ink) 50%, var(--tint-default)); stroke-width: .8; opacity: .8; }
-  .palm-crown { fill: var(--rock); stroke: none; }
-
-  @keyframes island-bob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+    width: min(150px, 45%);
   }
 
-  @media (max-width: 760px) {
-    .finance-island { width: min(150px, 45%); }
-    .finance-island--compact { width: 30%; }
-    .finance-island:nth-child(even) { margin-top: 28px; }
+  .finance-island--compact {
+    width: 30%;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .finance-island { animation: none; }
+  .finance-island:nth-child(even) {
+    margin-top: 28px;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finance-island {
+    animation: none;
+  }
+}
 </style>
