@@ -48,6 +48,7 @@ async function searchAssets() {
       assetType: form.value.asset_type,
       q: assetQuery.value.trim(),
     })
+    console.log(assetResults.value)
   } catch {
     assetResults.value = []
   } finally {
@@ -58,10 +59,11 @@ async function searchAssets() {
 function pickAsset(result) {
   form.value.symbol = result.id || result.symbol
   form.value.name = form.value.name || result.name
+  form.value.mic_code = result.mic_code || ''  // nuevo
+  form.value.currency = (result.currency || '').toUpperCase() || form.value.currency
   assetResults.value = []
   assetQuery.value = result.name
 }
-
 // ── plantilla: autocompleta algunos campos ──────────────────────
 function applyTemplate() {
   const tpl = templates.value.find((t) => t.id === form.value.template)
@@ -96,6 +98,11 @@ async function loadContext() {
 async function handleSubmit() {
   errorMsg.value = ''
   loading.value = true
+  if (form.value.kind === 'asset' && !form.value.currency) {
+    errorMsg.value = 'Selecciona el activo desde el buscador para determinar su moneda.'
+    loading.value = false
+    return
+  }
   try {
     const payload = { ...form.value }
     if (!payload.template) delete payload.template
@@ -104,7 +111,7 @@ async function handleSubmit() {
       delete payload.symbol
       delete payload.asset_type
     } else {
-      delete payload.currency
+      payload.currency = (payload.currency || '').toUpperCase()
       delete payload.interest_type
       delete payload.annual_rate
     }
@@ -242,6 +249,13 @@ onMounted(loadContext)
         </ul>
       </div>
 
+      <div class="field" v-if="form.symbol">
+        <label>Moneda del activo</label>
+        <div class="currency-chip">
+          {{ form.currency || 'Selecciona el activo para detectarla' }}
+        </div>
+      </div>
+
       <div class="field">
         <label for="island-symbol">Símbolo</label>
         <div class="input-shell">
@@ -346,4 +360,12 @@ onMounted(loadContext)
   border-radius: 12px; color: var(--foreground); background: transparent; font: 700 14px var(--font-sans); cursor: pointer;
 }
 .modal-cancel:hover { background: color-mix(in oklab, var(--foreground) 6%, transparent); }
+
+.currency-chip {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--ocean-deep) 10%, transparent);
+  color: var(--foreground);
+  font: 700 13px var(--font-sans);
+}
 </style>

@@ -1,8 +1,14 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import islandsService from '@/services/islands.service'
 import transactionsService from '@/services/transactions.service'
 import goalsService from '@/services/goals.service'
+
+const BASE_CURRENCY = 'MXN' // la moneda a la que convert_to_base() siempre normaliza
+
+const valueBase = computed(() => island.value?.summary?.value_base)
+const valueNative = computed(() => island.value?.summary?.value_native)
+const nativeCurrency = computed(() => island.value?.summary?.currency ?? island.value?.currency)
 
 const props = defineProps({ islandId: { type: String, required: true } })
 const emit = defineEmits(['edit-island', 'deleted', 'changed'])
@@ -30,6 +36,13 @@ const newTransaction = ref({
   note: '',
   destinationIslandId: '',
 })
+
+
+
+/* ---------- Cumplimiento rápido de metas (desde el detalle de la isla) ---------- */
+const goalCompletions = reactive({})
+const goalMarkLoading = ref(null)
+const goalMarkError = reactive({})
 
 const CASH_TYPES = [
   { value: 'deposit', label: 'Ingreso de dinero' },
@@ -67,8 +80,36 @@ const formatAmount = (value, currency = 'MXN') => {
   }).format(Number.isFinite(amount) ? amount : 0)
 }
 
+function formatDate(value) {
+  if (!value) return '—'
+  return new Date(`${value}T00:00:00`).toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+function formatFrequency(days) {
+  const n = Number(days)
+  if (!n) return '—'
+  if (n === 1) return 'Todos los días'
+  if (n === 7) return 'Cada semana'
+  if (n === 15) return 'Cada quincena'
+  if (n === 30) return 'Cada mes'
+  return `Cada ${n} días`
+}
+
 const value = computed(() => island.value?.summary?.value_base)
 const currency = computed(() => island.value?.summary?.currency ?? island.value?.currency ?? 'MXN')
+const costBasis = computed(() => island.value?.summary?.cost_basis)
+const gainLoss = computed(() => island.value?.summary?.gain_loss)
+const gainLossPercent = computed(() => {
+  const basis = Number(costBasis.value)
+  const gain = Number(gainLoss.value)
+  if (!basis || !Number.isFinite(basis) || !Number.isFinite(gain)) return null
+  return (gain / basis) * 100
+})
+
 const islandType = computed(() => island.value?.kind === 'cash' ? 'Efectivo y ahorro' : 'Activo de inversión')
 const isCashIsland = computed(() => island.value?.kind === 'cash')
 const isSystemIsland = computed(() => Boolean(island.value?.is_system))
@@ -127,23 +168,19 @@ async function loadMoreTransactions() {
 async function loadIsland() {
   loading.value = true
   error.value = ''
-  console.log('[loadIsland] start', props.islandId)
   try {
     const [islandData, goalsData] = await Promise.all([
       islandsService.retrieve(props.islandId),
       goalsService.list({ island: props.islandId }),
     ])
-    console.log('[loadIsland] resolved', { islandData, goalsData })
     island.value = islandData
     goals.value = goalsData.results ?? []
     newTransaction.value.type = islandData.kind === 'cash' ? 'deposit' : 'buy'
     await loadDestinationIslands()
     await loadTransactions({ reset: true })
   } catch (err) {
-    console.log('[loadIsland] error', err)
     error.value = err.message ?? 'No fue posible cargar la información de esta isla.'
   } finally {
-    console.log('[loadIsland] finally, loading=false')
     loading.value = false
   }
 }
@@ -311,6 +348,65 @@ async function saveEdit() {
   }
 }
 
+/* ---------- Marcar meta cumplida desde este panel, con un solo clic ---------- */
+
+// El periodo pendiente (sin completar) más antiguo para una meta, o null si
+// ya está al día. undefined significa que todavía no se han cargado sus
+// cumplimientos.
+function goalPendingCompletion(goalId) {
+  const list = goalCompletions[goalId]
+  if (!list) return undefined
+  const pending = list.filter((completion) => !completion.completed_date)
+  if (!pending.length) return null
+  return [...pending].sort(
+    (a, b) => new Date(a.expected_date) - new Date(b.expected_date)
+  )[0]
+}
+
+async function markGoalComplete(goal) {
+  goalMarkError[goal.id] = ''
+  goalMarkLoading.value = goal.id
+  try {
+    if (!goalCompletions[goal.id]) {
+      const data = await goalsService.getCompletions(goal.id)
+      goalCompletions[goal.id] = data.results ?? data ?? []
+    }
+    const pending = goalPendingCompletion(goal.id)
+    if (!pending) {
+      goalMarkError[goal.id] = 'Esta meta ya está al día, no hay periodos pendientes.'
+      return
+    }
+    const completion = await goalsService.markCompletion(goal.id, {
+      expected_date: pending.expected_date,
+    })
+    const list = goalCompletions[goal.id] ?? []
+    const index = list.findIndex((c) => c.expected_date === pending.expected_date)
+    if (index !== -1) list.splice(index, 1, completion)
+    else goalCompletions[goal.id] = [completion, ...list]
+
+    await refreshAfterGoalCompletion()
+  } catch (err) {
+    goalMarkError[goal.id] = err.message ?? 'No pudimos registrar el cumplimiento.'
+  } finally {
+    goalMarkLoading.value = null
+  }
+}
+
+// Marcar un cumplimiento crea un movimiento real en el ledger (ver
+// GoalViewSet.mark_completion), así que el total de la isla y su lista de
+// movimientos quedan desactualizados hasta que los volvemos a pedir. Se hace
+// sin activar el spinner de pantalla completa (loading.value) para no
+// interrumpir al usuario que sigue viendo la sección de metas.
+async function refreshAfterGoalCompletion() {
+  try {
+    island.value = await islandsService.retrieve(props.islandId)
+  } catch {
+    // Si falla, el usuario puede recargar manualmente; no bloqueamos el flujo.
+  }
+  await loadTransactions({ reset: true })
+  emit('changed')
+}
+
 watch(() => props.islandId, loadIsland)
 watch(transactionFilters, () => loadTransactions({ reset: true }), { deep: true })
 onMounted(loadIsland)
@@ -325,9 +421,13 @@ onMounted(loadIsland)
         <button type="button" @click="editIsland">Editar isla</button>
         <button type="button" class="island-info__delete-button" @click="deleteIsland">Eliminar isla</button>
       </div>
-      <div v-if="!loading" class="island-info__balance">
+      <div class="island-info__balance">
         <span>Total de la isla</span>
-        <strong>{{ formatAmount(value, currency) }}</strong>
+        <strong v-if="island?.summary?.price_unavailable">lamentablemente de momento no conocemos el precio de este activo recomiendo borrar esta isla y esperar una nueva actualizacion</strong>
+        <strong v-else>{{ formatAmount(valueBase, BASE_CURRENCY) }}</strong>
+        <small v-if="!isCashIsland && !island?.summary?.price_unavailable && nativeCurrency !== BASE_CURRENCY">
+          {{ formatAmount(valueNative, nativeCurrency) }} en {{ nativeCurrency }}
+        </small>
       </div>
     </div>
 
@@ -336,14 +436,51 @@ onMounted(loadIsland)
       <p v-else-if="error" class="island-info__state island-info__state--error">{{ error }}</p>
 
       <template v-else>
-        <dl class="island-info__facts">
-          <div><dt>Tipo</dt><dd>{{ islandType }}</dd></div>
-          <div><dt>Moneda</dt><dd>{{ currency }}</dd></div>
-          <div v-if="island?.symbol"><dt>Símbolo</dt><dd>{{ island.symbol }}</dd></div>
-          <div v-if="island?.annual_rate"><dt>Tasa anual</dt><dd>{{ (Number(island.annual_rate) * 100).toFixed(2) }}%</dd></div>
-          <div><dt>Metas activas</dt><dd>{{ activeGoals }}</dd></div>
-          <div><dt>Ganancia por interés</dt><dd>{{ formatAmount(island?.summary?.interest_earned, currency) }}</dd></div>
-        </dl>
+        <div v-if="isCashIsland">
+          <dt>Ganancia por interés</dt>
+          <dd>{{ formatAmount(island?.summary?.interest_earned, currency) }}</dd>
+        </div>
+        <div v-else>
+          <dt>Ganancia / pérdida</dt>
+          <dd v-if="island?.summary?.price_unavailable" class="island-info__state--error">
+            Precio no disponible por ahora
+          </dd>
+          <dd v-else :class="{ 'island-info__gain--positive': gainLoss > 0, 'island-info__gain--negative': gainLoss < 0 }">
+            {{ formatAmount(gainLoss, currency) }}
+            <span v-if="gainLossPercent !== null"> ({{ gainLossPercent >= 0 ? '+' : '' }}{{ gainLossPercent.toFixed(1) }}%)</span>
+          </dd>
+        </div>
+        <section v-if="goals.length" class="island-info__goals">
+          <div class="island-info__section-heading">
+            <h3>Metas de esta isla</h3>
+            <span>{{ goals.length }}</span>
+          </div>
+          <ul class="island-info__goals-list">
+            <li v-for="goal in goals" :key="goal.id" :class="{ 'is-inactive': !goal.active }">
+              <div class="island-info__goal-info">
+                <strong>{{ formatAmount(goal.target_amount, currency) }}</strong>
+                <span>{{ goal.active ? 'Activa' : 'Inactiva' }} · {{ formatFrequency(goal.frequency_days) }}</span>
+              </div>
+              <button
+                type="button"
+                class="island-info__goal-complete-button"
+                :disabled="goalMarkLoading === goal.id || !goal.active"
+                :title="!goal.active ? 'Activa la meta para poder marcarla como cumplida' : ''"
+                @click="markGoalComplete(goal)"
+              >
+                {{ goalMarkLoading === goal.id ? 'Registrando…' : '✓ Marcar cumplido' }}
+              </button>
+            </li>
+          </ul>
+          <p
+            v-for="goal in goals"
+            :key="`error-${goal.id}`"
+            v-show="goalMarkError[goal.id]"
+            class="island-info__form-error"
+          >
+            {{ goalMarkError[goal.id] }}
+          </p>
+        </section>
 
         <section class="island-info__transaction">
           <div class="island-info__section-heading">
@@ -370,7 +507,7 @@ onMounted(loadIsland)
                 <input v-model="newTransaction.quantity" type="number" min="0.00000001" step="0.00000001" required />
               </label>
               <label>
-                <span>Precio unitario</span>
+                <span>Precio unitario ({{ island?.currency }})</span>
                 <input v-model="newTransaction.price_at_tx" type="number" min="0.01" step="0.01" required />
               </label>
             </template>
@@ -426,8 +563,14 @@ onMounted(loadIsland)
             <label><span>Fecha</span><input v-model="editTransaction.date" type="date" required /></label>
             <label v-if="isCashIsland"><span>Monto</span><input v-model="editTransaction.amount" type="number" min="0.01" step="0.01" required /></label>
             <template v-else>
-              <label><span>Cantidad</span><input v-model="editTransaction.quantity" type="number" min="0.00000001" step="0.00000001" required /></label>
-              <label><span>Precio unitario</span><input v-model="editTransaction.price_at_tx" type="number" min="0.01" step="0.01" required /></label>
+              <label>
+                <span>Cantidad</span>
+                <input v-model="editTransaction.quantity" type="number" min="0.00000001" step="0.00000001" required />
+              </label>
+              <label>
+                <span>Precio unitario ({{ island?.currency }})</span>
+                <input v-model="editTransaction.price_at_tx" type="number" min="0.01" step="0.01" required />
+              </label>
             </template>
             <label v-if="editingTransaction.type === 'expense'"><span>Categoría</span><select v-model="editTransaction.category" required><option v-for="category in CATEGORIES" :key="category.value" :value="category.value">{{ category.label }}</option></select></label>
             <label v-if="isEditingTransfer" class="island-info__destination"><span>Transferir a</span><select v-model="editTransaction.destinationIslandId" required><option v-for="destination in availableDestinations" :key="destination.id" :value="String(destination.id)">{{ destination.name }}</option></select></label>
@@ -441,7 +584,11 @@ onMounted(loadIsland)
                 <strong>{{ TRANSACTION_LABELS[transaction.type] ?? transaction.type }}</strong>
                 <span>{{ transaction.date }}</span>
               </div>
-              <div class="island-info__transaction-actions"><b>{{ formatAmount(transaction.amount ?? transaction.quantity, currency) }}</b><button type="button" aria-label="Editar movimiento" @click="startEditing(transaction)">Editar</button></div>
+              <div class="island-info__transaction-actions">
+                <b v-if="isCashIsland">{{ formatAmount(transaction.amount, currency) }}</b>
+                <b v-else>{{ transaction.quantity }} × {{ formatAmount(transaction.price_at_tx, island?.currency) }}</b>
+                <button type="button" aria-label="Editar movimiento" @click="startEditing(transaction)">Editar</button>
+              </div>
             </li>
           </ul>
           <p v-else-if="!loadingMoreTransactions" class="island-info__empty">No hay movimientos con estos filtros.</p>
@@ -470,6 +617,15 @@ h2 { margin: 0; font-family: var(--font-display); font-size: clamp(28px, 6vw, 38
 dt { color: color-mix(in oklab, var(--label-ink) 65%, transparent); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 dd { margin: 5px 0 0; color: var(--label-ink); font-size: 14px; font-weight: 700; }
 .island-info__activity { margin-top: 24px; }
+.island-info__goals { margin-top: 20px; padding: 16px 18px; border-radius: 16px; background: color-mix(in oklab, var(--tag-sun) 10%, var(--label)); }
+.island-info__goals-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.island-info__goals-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border-radius: 12px; background: color-mix(in oklab, var(--label) 88%, transparent); }
+.island-info__goals-list li.is-inactive { opacity: .6; }
+.island-info__goal-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.island-info__goal-info strong { color: var(--label-ink); font-size: 13px; }
+.island-info__goal-info span { color: color-mix(in oklab, var(--label-ink) 68%, transparent); font-size: 11px; }
+.island-info__goal-complete-button { flex-shrink: 0; min-height: 32px; padding: 0 11px; border: 0; border-radius: 99px; color: var(--label); background: var(--ocean-deep); font: 700 11px var(--font-sans); cursor: pointer; white-space: nowrap; }
+.island-info__goal-complete-button:disabled { opacity: .55; cursor: not-allowed; }
 .island-info__transaction { margin-top: 24px; padding: 18px; border-radius: 18px; background: color-mix(in oklab, var(--tag-teal) 9%, var(--label)); }
 .island-info__section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 h3 { margin: 0; font-family: var(--font-display); font-size: 19px; }
@@ -484,7 +640,7 @@ h3 { margin: 0; font-family: var(--font-display); font-size: 19px; }
 .island-info__transaction button { min-height: 42px; border: 0; border-radius: 10px; color: var(--label); background: var(--ocean-deep); font: 700 13px var(--font-sans); cursor: pointer; transition: background 160ms ease, transform 160ms ease; }
 .island-info__transaction button:hover:not(:disabled) { background: var(--tag-teal); transform: translateY(-1px); }
 .island-info__transaction button:disabled { opacity: .65; cursor: wait; }
-.island-info__form-error { margin: -2px 0 0; color: #a13d30; font-size: 12px; }
+.island-info__form-error { margin: 8px 0 0; color: #a13d30; font-size: 12px; }
 .island-info__section-heading span { display: grid; place-items: center; min-width: 24px; height: 24px; border-radius: 50%; color: var(--label); background: var(--tag-coral); font-size: 12px; font-weight: 700; }
 .island-info__filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
 .island-info__filters select:last-child { grid-column: 1 / -1; }
@@ -507,4 +663,7 @@ li span { color: color-mix(in oklab, var(--label-ink) 68%, transparent); font-si
 li b { flex-shrink: 0; color: var(--label-ink); font-size: 13px; }
 .island-info__empty { margin: 0; padding: 17px; border-radius: 12px; color: color-mix(in oklab, var(--label-ink) 70%, transparent); background: color-mix(in oklab, var(--sky-top) 14%, var(--label)); font-size: 13px; text-align: center; }
 @media (max-width: 420px) { .island-info__hero { padding: 36px 24px 27px; } .island-info__content { padding: 20px; } .island-info__facts, .island-info__transaction form, .island-info__filters, .island-info__edit-form { grid-template-columns: 1fr; } .island-info__filters select:last-child { grid-column: auto; } }
+
+dd.island-info__gain--positive { color: #1f8a5b; }
+dd.island-info__gain--negative { color: #a13d30; }
 </style>
