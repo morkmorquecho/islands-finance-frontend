@@ -13,7 +13,20 @@ const hasMore = ref(false)
 const filters = ref({ island: '', category: '', dateStart: '', dateEnd: '', ordering: '-date' })
 
 const CATEGORIES = {
-  food: 'Comida', transport: 'Transporte', subscriptions: 'Suscripciones', housing: 'Vivienda', leisure: 'Ocio', other: 'Otro',
+  food: 'Comida',
+  transport: 'Transporte',
+  subscriptions: 'Suscripciones',
+  housing: 'Vivienda',
+  leisure: 'Ocio',
+  health: 'Salud',
+  clothing: 'Ropa',
+  travel: 'Viajes',
+  education: 'Educación',
+  finance: 'Finanzas',
+  family_events: 'Eventos Familiares',
+  taxes: 'Impuestos',
+  work: 'Trabajo',
+  other: 'Otro',
 }
 const currency = computed(() => islands.value.find((island) => String(island.id) === filters.value.island)?.currency ?? 'MXN')
 const formatAmount = (value) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: currency.value, maximumFractionDigits: 2 }).format(Number(value ?? 0))

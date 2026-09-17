@@ -44,6 +44,10 @@ function handleIslandDeleted() {
   ui.closeModal()
 }
 
+function handleIslandChanged() {
+  modal.value.formPayload?.onSuccess?.()
+}
+
 function handleModuleDeleted() {
   modal.value.formPayload?.onSuccess?.()
   ui.closeModal()
@@ -96,12 +100,15 @@ function handleModuleDeleted() {
                 />
               </template>
 
-              <IslandInfoModal
-                v-else-if="isIslandInfoMode"
-                :island-id="modal.islandId"
-                @edit-island="handleIslandEdit"
-                @deleted="handleIslandDeleted"
-              />
+                <IslandInfoModal
+                  v-else-if="isIslandInfoMode"
+                  :island-id="modal.islandId"
+                  @edit-island="handleIslandEdit"
+                  @deleted="handleIslandDeleted"
+                    @changed="handleIslandChanged"
+                />
+
+                
 
               <!-- ── modo mensaje (comportamiento original) ─────── -->
               <template v-else>

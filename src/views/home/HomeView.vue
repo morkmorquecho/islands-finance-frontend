@@ -318,7 +318,7 @@ async function deleteModule(moduleId: string) {
           <button
             class="new-module-button"
             type="button"
-            @click="openModuleForm"
+            @click="openModuleForm()"
           >
             + Archipiélago
           </button>

@@ -5,8 +5,7 @@ import transactionsService from '@/services/transactions.service'
 import goalsService from '@/services/goals.service'
 
 const props = defineProps({ islandId: { type: String, required: true } })
-const emit = defineEmits(['edit-island', 'deleted'])
-
+const emit = defineEmits(['edit-island', 'deleted', 'changed'])
 const island = ref(null)
 const transactions = ref([])
 const goals = ref([])
@@ -220,6 +219,7 @@ async function createTransaction() {
       amount: '', quantity: '', price_at_tx: '', category: '', note: '', destinationIslandId: '',
     }
     await loadIsland()
+    emit('changed')
   } catch (err) {
     transactionError.value = withdrawalCreated
       ? 'El retiro se registró, pero no se pudo completar el depósito en la isla destino. Revisa tus movimientos antes de intentarlo de nuevo.'
@@ -303,6 +303,7 @@ async function saveEdit() {
 
     cancelEditing()
     await loadIsland()
+    emit('changed')
   } catch (err) {
     transactionError.value = err.message ?? 'No se pudo actualizar el movimiento.'
   } finally {
