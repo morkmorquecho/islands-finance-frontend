@@ -4,6 +4,13 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import goalsService from '@/services/goals.service'
 import islandsService from '@/services/islands.service'
 
+// Marcar un cumplimiento crea un movimiento real en el ledger (ver
+// GoalViewSet.mark_completion), así que cualquier total que dependa de eso
+// en un componente padre (p. ej. un dashboard) debe refrescarse.
+const emit = defineEmits(['changed'])
+
+const MAX_VISIBLE_DONE_COMPLETIONS = 3
+
 /* ---------- Datos base ---------- */
 const islands = ref([])
 const goals = ref([])
@@ -36,6 +43,10 @@ const completionsError = reactive({})
 const markForm = reactive({})
 const markLoading = ref(null)
 const markError = reactive({})
+
+/* Marcar con un solo clic, sin necesidad de abrir el panel */
+const quickMarkLoading = ref(null)
+const quickMarkError = reactive({})
 
 /* ---------- Helpers ---------- */
 function islandById(id) {
@@ -193,6 +204,62 @@ async function deleteGoal(goal) {
 }
 
 /* ---------- Cumplimientos ---------- */
+
+// Carga (una sola vez) los cumplimientos de un objetivo. La reutilizan tanto
+// el panel expandido como el botón de marcado rápido de la tarjeta.
+async function ensureCompletionsLoaded(goalId) {
+  if (completionsByGoal[goalId]) return completionsByGoal[goalId]
+
+  completionsLoading.value = goalId
+  completionsError[goalId] = ''
+  try {
+    const data = await goalsService.getCompletions(goalId)
+    completionsByGoal[goalId] = data.results ?? data ?? []
+  } catch (err) {
+    completionsError[goalId] = err instanceof Error ? err.message : 'No pudimos cargar los cumplimientos.'
+    completionsByGoal[goalId] = []
+  } finally {
+    if (completionsLoading.value === goalId) completionsLoading.value = null
+  }
+  return completionsByGoal[goalId]
+}
+
+// El periodo pendiente (sin completar) más antiguo de un objetivo, o null si
+// ya está al día. Es el que se marca cuando el usuario da "un solo clic".
+function nextPendingCompletion(goalId) {
+  const list = completionsByGoal[goalId] ?? []
+  const pending = list.filter((completion) => !completion.completed_date)
+  if (!pending.length) return null
+  return [...pending].sort(
+    (a, b) => new Date(a.expected_date) - new Date(b.expected_date)
+  )[0]
+}
+
+function replaceCompletion(goalId, updated) {
+  const list = completionsByGoal[goalId] ?? []
+  const index = list.findIndex((c) => c.expected_date === updated.expected_date)
+  if (index !== -1) list.splice(index, 1, updated)
+  else completionsByGoal[goalId] = [updated, ...list]
+}
+
+// Para no mostrar una lista interminable de cumplimientos ya hechos (un
+// objetivo diario lleva cientos con el tiempo), mostramos todos los
+// pendientes más solo los últimos N ya cumplidos, ordenados del más
+// reciente al más antiguo.
+function visibleCompletions(goalId) {
+  const list = completionsByGoal[goalId] ?? []
+  const pending = list.filter((completion) => !completion.completed_date)
+  const done = [...list.filter((completion) => completion.completed_date)].sort(
+    (a, b) => new Date(b.expected_date) - new Date(a.expected_date)
+  )
+  const recentDone = done.slice(0, MAX_VISIBLE_DONE_COMPLETIONS)
+  const hiddenDoneCount = Math.max(done.length - recentDone.length, 0)
+  const items = [...pending, ...recentDone].sort(
+    (a, b) => new Date(b.expected_date) - new Date(a.expected_date)
+  )
+  return { items, hiddenDoneCount }
+}
+
 async function toggleCompletions(goal) {
   if (expandedGoal.value === goal.id) {
     expandedGoal.value = null
@@ -204,19 +271,7 @@ async function toggleCompletions(goal) {
     markForm[goal.id] = { expected_date: '', transaction_id: '', actual_amount: '' }
   }
 
-  if (!completionsByGoal[goal.id]) {
-    completionsLoading.value = goal.id
-    completionsError[goal.id] = ''
-    try {
-      const data = await goalsService.getCompletions(goal.id)
-      completionsByGoal[goal.id] = data.results ?? data ?? []
-    } catch (err) {
-      completionsError[goal.id] = err instanceof Error ? err.message : 'No pudimos cargar los cumplimientos.'
-      completionsByGoal[goal.id] = []
-    } finally {
-      completionsLoading.value = null
-    }
-  }
+  await ensureCompletionsLoaded(goal.id)
 }
 
 async function submitMark(goal) {
@@ -234,12 +289,57 @@ async function submitMark(goal) {
     if (data.actual_amount) payload.actual_amount = Number(data.actual_amount)
 
     const completion = await goalsService.markCompletion(goal.id, payload)
-    completionsByGoal[goal.id] = [completion, ...(completionsByGoal[goal.id] ?? [])]
+    replaceCompletion(goal.id, completion)
     markForm[goal.id] = { expected_date: '', transaction_id: '', actual_amount: '' }
+    emit('changed')
   } catch (err) {
     markError[goal.id] = err instanceof Error ? err.message : 'No pudimos registrar el cumplimiento.'
   } finally {
     markLoading.value = null
+  }
+}
+
+// Marca un periodo puntual del panel expandido con un clic, sin llenar el
+// formulario (se usa el target_amount del objetivo como monto por defecto,
+// tal como lo resuelve el backend cuando no se manda actual_amount).
+async function markSpecific(goal, completion) {
+  markError[goal.id] = ''
+  markLoading.value = goal.id
+  try {
+    const updated = await goalsService.markCompletion(goal.id, {
+      expected_date: completion.expected_date,
+    })
+    replaceCompletion(goal.id, updated)
+    emit('changed')
+  } catch (err) {
+    markError[goal.id] = err instanceof Error ? err.message : 'No pudimos registrar el cumplimiento.'
+  } finally {
+    markLoading.value = null
+  }
+}
+
+// Botón de "un solo clic" en la tarjeta del objetivo: no requiere expandir
+// el panel. Busca el periodo pendiente más antiguo y lo marca como cumplido;
+// la fecha de cumplimiento la registra el backend automáticamente.
+async function quickMarkComplete(goal) {
+  quickMarkError[goal.id] = ''
+  quickMarkLoading.value = goal.id
+  try {
+    await ensureCompletionsLoaded(goal.id)
+    const pending = nextPendingCompletion(goal.id)
+    if (!pending) {
+      quickMarkError[goal.id] = 'Este objetivo ya está al día, no hay periodos pendientes.'
+      return
+    }
+    const updated = await goalsService.markCompletion(goal.id, {
+      expected_date: pending.expected_date,
+    })
+    replaceCompletion(goal.id, updated)
+    emit('changed')
+  } catch (err) {
+    quickMarkError[goal.id] = err instanceof Error ? err.message : 'No pudimos registrar el cumplimiento.'
+  } finally {
+    quickMarkLoading.value = null
   }
 }
 </script>
@@ -362,6 +462,15 @@ async function submitMark(goal) {
           </div>
 
           <div class="goal-card-actions">
+            <button
+              type="button"
+              class="quick-complete-button"
+              :disabled="quickMarkLoading === goal.id || !goal.active"
+              :title="!goal.active ? 'Activa el objetivo para poder marcarlo como cumplido' : ''"
+              @click="quickMarkComplete(goal)"
+            >
+              {{ quickMarkLoading === goal.id ? 'Registrando…' : '✓ Marcar cumplido' }}
+            </button>
             <button type="button" @click="openEdit(goal)">Editar</button>
             <button type="button" @click="toggleActive(goal)">{{ goal.active ? 'Desactivar' : 'Activar' }}</button>
             <button type="button" @click="toggleCompletions(goal)">
@@ -369,44 +478,66 @@ async function submitMark(goal) {
             </button>
             <button type="button" class="danger-link" @click="deleteGoal(goal)">Eliminar</button>
           </div>
+          <p v-if="quickMarkError[goal.id]" class="error-message" role="alert">{{ quickMarkError[goal.id] }}</p>
 
           <div v-if="expandedGoal === goal.id" class="completions-panel">
-            <form class="mark-form" @submit.prevent="submitMark(goal)">
-              <div class="field">
-                <label :for="`mark_date_${goal.id}`">Fecha esperada</label>
-                <input :id="`mark_date_${goal.id}`" v-model="markForm[goal.id].expected_date" type="date" required />
-              </div>
-              <div class="field">
-                <label :for="`mark_amount_${goal.id}`">Monto real (opcional)</label>
-                <input
-                  :id="`mark_amount_${goal.id}`"
-                  v-model="markForm[goal.id].actual_amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                />
-              </div>
-              <div class="field">
-                <label :for="`mark_txn_${goal.id}`">ID de transacción (opcional)</label>
-                <input :id="`mark_txn_${goal.id}`" v-model="markForm[goal.id].transaction_id" type="number" min="1" placeholder="Ej. 128" />
-              </div>
-              <button class="mark-button" type="submit" :disabled="markLoading === goal.id">
-                {{ markLoading === goal.id ? 'Guardando…' : 'Marcar cumplimiento' }}
-              </button>
-            </form>
-            <p v-if="markError[goal.id]" class="error-message" role="alert">{{ markError[goal.id] }}</p>
-
-            <p v-if="completionsLoading === goal.id" class="goals-state">Cargando cumplimientos…</p>
+            <template v-if="completionsLoading !== goal.id && completionsByGoal[goal.id]?.length">
+              <ul class="completions-list">
+                <li
+                  v-for="completion in visibleCompletions(goal.id).items"
+                  :key="completion.id ?? completion.expected_date"
+                  :class="{ 'completion-done': completion.completed_date, 'completion-pending': !completion.completed_date }"
+                >
+                  <span class="completion-date">{{ formatDate(completion.expected_date) }}</span>
+                  <span v-if="completion.completed_date" class="completion-status">
+                    Cumplido {{ formatDate(completion.completed_date) }}
+                  </span>
+                  <span v-if="completion.actual_amount">{{ formatAmount(completion.actual_amount, goal.island) }}</span>
+                  <span v-if="completion.transaction_id" class="txn-tag">Mov. #{{ completion.transaction_id }}</span>
+                  <button
+                    v-if="!completion.completed_date"
+                    type="button"
+                    class="mark-inline-button"
+                    :disabled="markLoading === goal.id"
+                    @click="markSpecific(goal, completion)"
+                  >
+                    {{ markLoading === goal.id ? 'Guardando…' : '✓ Marcar cumplido' }}
+                  </button>
+                </li>
+              </ul>
+              <p v-if="visibleCompletions(goal.id).hiddenDoneCount" class="completions-hidden-note">
+                + {{ visibleCompletions(goal.id).hiddenDoneCount }} cumplido{{ visibleCompletions(goal.id).hiddenDoneCount === 1 ? '' : 's' }} anterior{{ visibleCompletions(goal.id).hiddenDoneCount === 1 ? '' : 'es' }} (no se muestran)
+              </p>
+            </template>
+            <p v-else-if="completionsLoading === goal.id" class="goals-state">Cargando cumplimientos…</p>
             <p v-else-if="completionsError[goal.id]" class="goals-error">{{ completionsError[goal.id] }}</p>
-            <ul v-else-if="completionsByGoal[goal.id]?.length" class="completions-list">
-              <li v-for="completion in completionsByGoal[goal.id]" :key="completion.id ?? completion.expected_date">
-                <span>{{ formatDate(completion.expected_date) }}</span>
-                <span v-if="completion.actual_amount">{{ formatAmount(completion.actual_amount, goal.island) }}</span>
-                <span v-if="completion.transaction_id" class="txn-tag">Mov. #{{ completion.transaction_id }}</span>
-              </li>
-            </ul>
             <p v-else class="goals-state">Aún no hay cumplimientos registrados.</p>
+
+            <details class="mark-form-details">
+              <summary>¿Necesitas registrar otra fecha o vincular un movimiento existente?</summary>
+              <form class="mark-form" @submit.prevent="submitMark(goal)">
+                <div class="field">
+                  <label :for="`mark_date_${goal.id}`">Fecha esperada</label>
+                  <input :id="`mark_date_${goal.id}`" v-model="markForm[goal.id].expected_date" type="date" required />
+                </div>
+                <div class="field">
+                  <label :for="`mark_amount_${goal.id}`">Monto real (opcional)</label>
+                  <input
+                    :id="`mark_amount_${goal.id}`"
+                    v-model="markForm[goal.id].actual_amount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <button class="mark-button" type="submit" :disabled="markLoading === goal.id">
+                  {{ markLoading === goal.id ? 'Guardando…' : 'Marcar cumplimiento' }}
+                </button>
+              </form>
+              <p v-if="markError[goal.id]" class="error-message" role="alert">{{ markError[goal.id] }}</p>
+            </details>
           </div>
         </article>
       </section>
@@ -469,15 +600,25 @@ async function submitMark(goal) {
 .goal-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .goal-card-actions button { min-height: 34px; padding: 0 12px; border: 1px solid color-mix(in oklab, var(--ocean-deep) 20%, transparent); border-radius: 99px; color: var(--label-ink); background: color-mix(in oklab, var(--label) 90%, transparent); font: 700 12px var(--font-sans); cursor: pointer; }
 .goal-card-actions .danger-link { border-color: color-mix(in oklab, var(--tag-coral) 45%, transparent); color: #a13d30; }
+.quick-complete-button { border-color: color-mix(in oklab, var(--tag-teal) 45%, transparent) !important; color: var(--ocean-deep) !important; background: color-mix(in oklab, var(--tag-teal) 20%, var(--label)) !important; font-weight: 800 !important; }
+.quick-complete-button:disabled { opacity: .55; cursor: not-allowed; }
 
 .completions-panel { margin-top: 18px; padding-top: 16px; border-top: 1px solid color-mix(in oklab, var(--ocean-deep) 12%, transparent); display: flex; flex-direction: column; gap: 14px; }
+.mark-form-details { font-size: 13px; }
+.mark-form-details summary { cursor: pointer; color: var(--ocean-deep); font-weight: 700; font-size: 12px; }
+.mark-form-details .mark-form { margin-top: 12px; }
 .mark-form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
 .mark-button { min-height: 42px; padding: 0 16px; border: 0; border-radius: 10px; color: var(--label); background: var(--ocean-deep); font: 700 13px var(--font-sans); cursor: pointer; white-space: nowrap; }
 .mark-button:disabled { opacity: .6; cursor: not-allowed; }
 
 .completions-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .completions-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid color-mix(in oklab, var(--ocean-deep) 11%, transparent); border-radius: 12px; font-size: 13px; }
-.txn-tag { margin-left: auto; padding: 3px 8px; border-radius: 99px; color: var(--label-ink); background: color-mix(in oklab, var(--tag-sun) 19%, transparent); font-size: 11px; font-weight: 700; }
+.completions-list li.completion-done { background: color-mix(in oklab, var(--tag-teal) 10%, transparent); }
+.completion-status { color: color-mix(in oklab, var(--tag-teal) 55%, var(--ocean-deep)); font-weight: 700; }
+.mark-inline-button { margin-left: auto; min-height: 30px; padding: 0 10px; border: 0; border-radius: 99px; color: var(--label); background: var(--ocean-deep); font: 700 11px var(--font-sans); cursor: pointer; white-space: nowrap; }
+.mark-inline-button:disabled { opacity: .6; cursor: not-allowed; }
+.txn-tag { padding: 3px 8px; border-radius: 99px; color: var(--label-ink); background: color-mix(in oklab, var(--tag-sun) 19%, transparent); font-size: 11px; font-weight: 700; }
+.completions-hidden-note { margin: 0; color: color-mix(in oklab, var(--label-ink) 62%, transparent); font-size: 11px; font-style: italic; }
 
 .goals-error, .goals-state { max-width: 1000px; margin: 25px auto; color: var(--label-ink); text-align: center; }
 .goals-error { color: #a13d30; }
