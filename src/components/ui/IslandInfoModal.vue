@@ -66,6 +66,7 @@ const CATEGORIES = [
   { value: 'finance', label: 'Finanzas' },
   { value: 'family_events', label: 'Eventos familiares' },
   { value: 'taxes', label: 'Impuestos' },
+  {value: 'sport', label: 'Deporte'},
   { value: 'work', label: 'Trabajo' },
   { value: 'other', label: 'Otro' },
 ]

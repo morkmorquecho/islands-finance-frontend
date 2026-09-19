@@ -24,6 +24,7 @@ const CATEGORIES = {
   education: 'Educación',
   finance: 'Finanzas',
   family_events: 'Eventos Familiares',
+  sport: 'Deporte',
   taxes: 'Impuestos',
   work: 'Trabajo',
   other: 'Otro',
