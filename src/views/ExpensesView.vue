@@ -12,6 +12,28 @@ const page = ref(1)
 const hasMore = ref(false)
 const filters = ref({ island: '', category: '', dateStart: '', dateEnd: '', ordering: '-date' })
 
+const CATEGORY_COLORS = {
+  food: 'category-food',
+  transport: 'category-transport',
+  subscriptions: 'category-subscriptions',
+  housing: 'category-housing',
+  leisure: 'category-leisure',
+  health: 'category-health',
+  clothing: 'category-clothing',
+  travel: 'category-travel',
+  education: 'category-education',
+  finance: 'category-finance',
+  family_events: 'category-family-events',
+  sport: 'category-sport',
+  taxes: 'category-taxes',
+  work: 'category-work',
+  other: 'category-other',
+}
+
+function categoryClass(category) {
+  return CATEGORY_COLORS[category] ?? CATEGORY_COLORS.other
+}
+
 const CATEGORIES = {
   food: 'Comida',
   transport: 'Transporte',
@@ -100,7 +122,14 @@ onMounted(async () => { await Promise.all([loadIslands(), loadExpenses({ reset: 
 
       <section class="expense-grid">
         <article class="expense-card expense-chart"><h2>Distribución por categoría</h2><div v-if="byCategory.length" class="bars"><div v-for="item in byCategory" :key="item.key" class="bar-row"><span>{{ item.label }}</span><div><i :style="{ width: `${(item.value / maxCategory) * 100}%` }" /></div><b>{{ formatAmount(item.value) }}</b></div></div><p v-else class="expenses-state">No hay datos para este periodo.</p></article>
-        <article class="expense-card"><h2>Movimientos</h2><div class="expense-table-wrap"><table><thead><tr><th>Fecha</th><th>Categoría</th><th>Nota</th><th>Monto</th></tr></thead><tbody><tr v-for="transaction in transactions" :key="transaction.id"><td>{{ transaction.date }}</td><td><span class="category-pill">{{ CATEGORIES[transaction.category] ?? 'Otro' }}</span></td><td>{{ transaction.note || '—' }}</td><td>{{ formatAmount(transaction.amount) }}</td></tr><tr v-if="!transactions.length"><td colspan="4">No hay gastos con estos filtros.</td></tr></tbody></table></div><button v-if="hasMore" class="more-button" :disabled="loadingMore" @click="loadMore">{{ loadingMore ? 'Cargando…' : 'Ver más gastos' }}</button></article>
+        <article class="expense-card"><h2>Movimientos</h2><div class="expense-table-wrap"><table><thead><tr><th>Fecha</th><th>Categoría</th><th>Nota</th><th>Monto</th></tr></thead><tbody><tr v-for="transaction in transactions" :key="transaction.id"><td>{{ transaction.date }}</td><td>  
+          <span
+            class="category-pill"
+            :class="categoryClass(transaction.category)"
+          >
+            {{ CATEGORIES[transaction.category] ?? 'Otro' }}
+          </span>
+        </td><td>{{ transaction.note || '—' }}</td><td>{{ formatAmount(transaction.amount) }}</td></tr><tr v-if="!transactions.length"><td colspan="4">No hay gastos con estos filtros.</td></tr></tbody></table></div><button v-if="hasMore" class="more-button" :disabled="loadingMore" @click="loadMore">{{ loadingMore ? 'Cargando…' : 'Ver más gastos' }}</button></article>
       </section>
     </template>
   </main>
@@ -111,8 +140,33 @@ onMounted(async () => { await Promise.all([loadIslands(), loadExpenses({ reset: 
 .expenses-header { display: flex; flex-direction: column; gap: 18px; max-width: 1180px; margin: 0 auto 26px; }.expenses-header a { width: fit-content; color: var(--label-ink); font-size: 13px; font-weight: 700; text-decoration: none; }.expenses-header p { margin: 0 0 6px; color: var(--ocean-deep); font-size: 13px; font-weight: 700; }.expenses-header h1 { margin: 0; font-family: var(--font-display); font-size: clamp(34px, 6vw, 58px); letter-spacing: -.04em; }
 .expense-filters, .expense-stats, .expense-grid { max-width: 1180px; margin-inline: auto; }.expense-filters { display: grid; grid-template-columns: 1.4fr 1fr repeat(2, 1fr) 1fr; gap: 10px; margin-bottom: 20px; padding: 14px; border: 1px solid color-mix(in oklab, var(--ocean-deep) 15%, transparent); border-radius: 17px; background: color-mix(in oklab, var(--label) 72%, transparent); }.expense-filters select, .expense-filters input { min-width: 0; min-height: 40px; padding: 0 10px; border: 1px solid color-mix(in oklab, var(--ocean-deep) 18%, transparent); border-radius: 10px; color: var(--label-ink); background: var(--label); font: inherit; font-size: 13px; }
 .expense-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }.expense-stats article, .expense-card { border: 1px solid color-mix(in oklab, var(--ocean-deep) 15%, transparent); border-radius: 20px; background: color-mix(in oklab, var(--label) 80%, transparent); box-shadow: 0 12px 30px color-mix(in oklab, var(--ocean-deep) 8%, transparent); }.expense-stats article { display: flex; flex-direction: column; gap: 5px; padding: 20px; }.expense-stats span, .expense-stats small { color: color-mix(in oklab, var(--label-ink) 70%, transparent); font-size: 12px; }.expense-stats strong { font-family: var(--font-display); font-size: 27px; }
-.expense-grid { display: grid; grid-template-columns: minmax(280px, .8fr) minmax(0, 1.6fr); gap: 18px; }.expense-card { padding: 20px; }.expense-card h2 { margin: 0 0 18px; font-family: var(--font-display); font-size: 22px; }.bars { display: flex; flex-direction: column; gap: 14px; }.bar-row { display: grid; grid-template-columns: 90px minmax(40px, 1fr) auto; align-items: center; gap: 9px; font-size: 12px; }.bar-row > div { height: 9px; overflow: hidden; border-radius: 99px; background: color-mix(in oklab, var(--ocean-deep) 12%, transparent); }.bar-row i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--tag-teal), var(--tag-coral)); }.bar-row b { font-size: 11px; white-space: nowrap; }
-.expense-table-wrap { overflow-x: auto; }table { width: 100%; border-collapse: collapse; font-size: 13px; }th { color: color-mix(in oklab, var(--label-ink) 68%, transparent); font-size: 11px; text-align: left; text-transform: uppercase; }th, td { padding: 11px 8px; border-bottom: 1px solid color-mix(in oklab, var(--ocean-deep) 11%, transparent); }td:last-child { font-weight: 700; white-space: nowrap; }.category-pill { padding: 4px 7px; border-radius: 99px; color: var(--label-ink); background: color-mix(in oklab, var(--tag-sun) 19%, transparent); font-size: 11px; font-weight: 700; }.more-button { width: 100%; margin-top: 14px; min-height: 39px; border: 0; border-radius: 10px; color: var(--label); background: var(--ocean-deep); font: 700 13px var(--font-sans); cursor: pointer; }.expenses-error, .expenses-state { max-width: 1180px; margin: 25px auto; color: var(--label-ink); text-align: center; }.expenses-error { color: #a13d30; }
+.expense-grid { display: grid; grid-template-columns: minmax(280px, .8fr) minmax(0, 1.6fr); gap: 18px; }.expense-card { padding: 20px; }.expense-card h2 { margin: 0 0 18px; font-family: var(--font-display); font-size: 22px; }.bars { display: flex; flex-direction: column; gap: 14px; }.bar-row { display: grid; grid-template-columns: 90px minmax(40px, 1fr) auto; align-items: center; gap: 9px; font-size: 12px; }.bar-row > div { height: 9px; overflow: hidden; border-radius: 99px; background: color-mix(in oklab, var(--ocean-deep) 12%, transparent); }.bar-row i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2a9d8f, #ffb703); }.bar-row b { font-size: 11px; white-space: nowrap; }
+.expense-table-wrap { overflow-x: auto; }table { width: 100%; border-collapse: collapse; font-size: 13px; }th { color: color-mix(in oklab, var(--label-ink) 68%, transparent); font-size: 11px; text-align: left; text-transform: uppercase; }th, td { padding: 11px 8px; border-bottom: 1px solid color-mix(in oklab, var(--ocean-deep) 11%, transparent); }td:last-child { font-weight: 700; white-space: nowrap; }
+.category-pill {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #17202a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 @media (max-width: 860px) { .expense-filters { grid-template-columns: repeat(2, 1fr); }.expense-stats, .expense-grid { grid-template-columns: 1fr; } }
 @media (max-width: 480px) { .expense-filters { grid-template-columns: 1fr; }.expenses-page { padding-inline: 14px; }.expense-stats strong { font-size: 23px; } }
+
+.category-food { background: #ffb703; }
+.category-transport { background: #219ebc; }
+.category-subscriptions { background: #ee6c9d; }
+.category-housing { background: #e9c46a; }
+.category-leisure { background: #4ecdc4; }
+.category-health { background: #52b788; }
+.category-clothing { background: #ff8fa3; }
+.category-travel { background: #48cae4; }
+.category-education { background: #95d5b2; }
+.category-finance { background: #90be6d; }
+.category-family-events { background: #f4978e; }
+.category-sport { background: #ff9f1c; }
+.category-taxes { background: #e76f51; }
+.category-work { background: #40916c; }
+.category-other { background: #cbb994; }
 </style>
