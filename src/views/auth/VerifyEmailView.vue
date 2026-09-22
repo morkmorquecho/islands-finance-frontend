@@ -28,7 +28,11 @@ onMounted(async () => {
   try {
     await authService.verifyEmail(token);
     status.value = "success";
-    setTimeout(() => router.push({ name: "login" }), 2500);
+
+    // Delay forzado de 4 segundos antes de redirigir
+    setTimeout(() => {
+      router.push({ name: "login" });
+    }, 4000);
   } catch (err) {
     status.value = "error";
     errorMsg.value =

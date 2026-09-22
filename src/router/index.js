@@ -21,7 +21,7 @@ const routes = [
     meta: { guestOnly: true },
   },
   {
-    path: '/verify-email',
+    path: '/auth/email/verify',
     name: 'verify-email',
     component: () => import('@/views/auth/VerifyEmailView.vue'),
   },
@@ -31,12 +31,12 @@ const routes = [
     component: () => import('@/views/auth/ResetPasswordRequestView.vue'),
     meta: { guestOnly: true },
   },
-  {
-    path: '/reset-password/confirm',
-    name: 'reset-password-confirm',
-    component: () => import('@/views/auth/ResetPasswordConfirmView.vue'),
-    meta: { guestOnly: true },
-  },
+{
+  path: '/auth/reset/password/confirm/:uidb64/:token/',
+  name: 'reset-password-confirm',
+  component: () => import('@/views/auth/ResetPasswordConfirmView.vue'),
+  meta: { guestOnly: true },
+},
 
   {
     path: '/settings',

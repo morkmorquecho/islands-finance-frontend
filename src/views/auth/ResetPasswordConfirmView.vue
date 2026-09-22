@@ -18,10 +18,10 @@ const showPassword = ref(false);
 const showConfirm = ref(false);
 
 const uidb64 = computed(() =>
-  typeof route.query.uidb64 === "string" ? route.query.uidb64 : ""
+  typeof route.params.uidb64 === "string" ? route.params.uidb64 : ""
 );
 const token = computed(() =>
-  typeof route.query.token === "string" ? route.query.token : ""
+  typeof route.params.token === "string" ? route.params.token : ""
 );
 
 const linkIsValid = computed(() => uidb64.value !== "" && token.value !== "");
