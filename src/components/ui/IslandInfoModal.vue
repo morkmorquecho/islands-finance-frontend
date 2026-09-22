@@ -451,12 +451,12 @@ onMounted(loadIsland)
             <span v-if="gainLossPercent !== null"> ({{ gainLossPercent >= 0 ? '+' : '' }}{{ gainLossPercent.toFixed(1) }}%)</span>
           </dd>
         </div>
-        <section v-if="goals.length" class="island-info__goals">
+        <section class="island-info__goals">
           <div class="island-info__section-heading">
             <h3>Metas de esta isla</h3>
             <span>{{ goals.length }}</span>
           </div>
-          <ul class="island-info__goals-list">
+          <ul v-if="goals.length" class="island-info__goals-list">
             <li v-for="goal in goals" :key="goal.id" :class="{ 'is-inactive': !goal.active }">
               <div class="island-info__goal-info">
                 <strong>{{ formatAmount(goal.target_amount, currency) }}</strong>
@@ -465,7 +465,7 @@ onMounted(loadIsland)
               <button
                 type="button"
                 class="island-info__goal-complete-button"
-                :disabled="goalMarkLoading === goal.id || !goal.active"
+                :disabled="goalMarkLoading === goal.id || !goal.active || !goals.length"
                 :title="!goal.active ? 'Activa la meta para poder marcarla como cumplida' : ''"
                 @click="markGoalComplete(goal)"
               >
@@ -473,6 +473,15 @@ onMounted(loadIsland)
               </button>
             </li>
           </ul>
+          <button
+            v-else
+            type="button"
+            class="island-info__goal-complete-button"
+            disabled
+            title="No hay metas disponibles"
+          >
+            ✓ Marcar cumplido
+          </button>
           <p
             v-for="goal in goals"
             :key="`error-${goal.id}`"

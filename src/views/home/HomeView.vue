@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/auth";
 import modulesService from "@/services/modules.service";
 import islandsService from "@/services/islands.service";
 import type { IslandAccount } from "../../types/brand-tints";
+import LoadingScreen from "@/components/LoadingScreen.vue";
 
 type ChartEntry = {
   id: string;
@@ -157,13 +158,13 @@ async function loadModules() {
   } catch (err: any) {
     modulesError.value =
       err.message ?? "No se pudieron cargar tus archipiélagos.";
-  } finally {
-    loadingModules.value = false;
+    } finally {
+      loadingModules.value = false;
 
-    requestAnimationFrame(() => {
-      updateProgress();
-    });
-  }
+      requestAnimationFrame(() => {
+        updateProgress();
+      });
+    }
 }
 
 const chartModules = computed(() =>
@@ -288,6 +289,7 @@ async function deleteModule(moduleId: string) {
 
 <template>
   <main ref="sceneEl" class="finance-scene">
+    <LoadingScreen :visible="loadingModules" />
     <div
       class="ocean-stage"
       :class="{
