@@ -3,6 +3,7 @@
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import authService from "@/services/auth.service";
+import { useApiError } from "@/composable/useApiError";
 import AuthShell from "@/components/auth/AuthShell.vue";
 import AuthIntro from "@/components/auth/AuthIntro.vue";
 import AuthCard from "@/components/auth/AuthCard.vue";
@@ -10,9 +11,16 @@ import AuthField from "@/components/auth/AuthField.vue";
 
 const route = useRoute();
 const router = useRouter();
+const {
+  errorMessage,
+  fieldErrors,
+  retryAfterSeconds,
+  handle: handleApiError,
+  reset: resetApiError,
+} = useApiError();
 
 const form = ref({ new_password: "", confirm_new_password: "" });
-const errorMsg = ref("");
+const localError = ref("");
 const loading = ref(false);
 const showPassword = ref(false);
 const showConfirm = ref(false);
@@ -30,10 +38,11 @@ const passwordsMatch = computed(
 );
 
 async function handleSubmit() {
-  errorMsg.value = "";
+  resetApiError();
+  localError.value = "";
 
   if (!passwordsMatch.value) {
-    errorMsg.value = "Las contraseñas no coinciden.";
+    localError.value = "Las contraseñas no coinciden.";
     return;
   }
 
@@ -46,10 +55,7 @@ async function handleSubmit() {
     });
     router.push({ name: "login" });
   } catch (err) {
-    errorMsg.value =
-      err instanceof Error
-        ? err.message
-        : "No pudimos actualizar tu contraseña. Intenta nuevamente.";
+    handleApiError(err);
   } finally {
     loading.value = false;
   }
@@ -87,7 +93,12 @@ async function handleSubmit() {
 
       <!-- Estado: formulario normal -->
       <template v-else>
-        <AuthField id="new_password" label="Nueva contraseña" icon="●">
+        <AuthField
+          id="new_password"
+          label="Nueva contraseña"
+          icon="●"
+          :error="fieldErrors.new_password?.[0]"
+        >
           <input
             id="new_password"
             v-model="form.new_password"
@@ -112,6 +123,7 @@ async function handleSubmit() {
           id="confirm_new_password"
           label="Confirmar nueva contraseña"
           icon="●"
+          :error="fieldErrors.confirm_new_password?.[0]"
         >
           <input
             id="confirm_new_password"
@@ -133,8 +145,9 @@ async function handleSubmit() {
           </button>
         </AuthField>
 
-        <p v-if="errorMsg" class="error-message" role="alert">
-          {{ errorMsg }}
+        <p v-if="localError || errorMessage" class="error-message" role="alert">
+          {{ localError || errorMessage }}
+          <span v-if="retryAfterSeconds"> ({{ retryAfterSeconds }}s)</span>
         </p>
 
         <button class="submit-button" type="submit" :disabled="loading">

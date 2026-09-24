@@ -1,8 +1,9 @@
 <!-- src/views/VerifyEmailView.vue -->
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, onBeforeUnmount, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import authService from "@/services/auth.service";
+import { useApiError } from "@/composable/useApiError";
 import AuthShell from "@/components/auth/AuthShell.vue";
 import AuthIntro from "@/components/auth/AuthIntro.vue";
 import AuthCard from "@/components/auth/AuthCard.vue";
@@ -11,17 +12,27 @@ type Status = "loading" | "success" | "error";
 
 const route = useRoute();
 const router = useRouter();
+const {
+  errorMessage,
+  retryAfterSeconds,
+  handle: handleApiError,
+  reset: resetApiError,
+} = useApiError();
 
 const status = ref<Status>("loading");
-const errorMsg = ref("");
+const localError = ref("");
+let redirectTimer: ReturnType<typeof setTimeout> | null = null;
 
 onMounted(async () => {
+  resetApiError();
+  localError.value = "";
+
   const token =
     typeof route.query.token === "string" ? route.query.token : "";
 
   if (!token) {
     status.value = "error";
-    errorMsg.value = "Falta el token de verificación.";
+    localError.value = "Falta el token de verificación.";
     return;
   }
 
@@ -30,16 +41,17 @@ onMounted(async () => {
     status.value = "success";
 
     // Delay forzado de 4 segundos antes de redirigir
-    setTimeout(() => {
+    redirectTimer = setTimeout(() => {
       router.push({ name: "login" });
     }, 4000);
   } catch (err) {
     status.value = "error";
-    errorMsg.value =
-      err instanceof Error
-        ? err.message
-        : "No pudimos verificar tu cuenta. Intenta nuevamente.";
+    handleApiError(err);
   }
+});
+
+onBeforeUnmount(() => {
+  if (redirectTimer) clearTimeout(redirectTimer);
 });
 </script>
 
@@ -75,7 +87,8 @@ onMounted(async () => {
       <!-- Error -->
       <template v-else>
         <p class="error-message" role="alert">
-          {{ errorMsg }}
+          {{ localError || errorMessage }}
+          <span v-if="retryAfterSeconds"> ({{ retryAfterSeconds }}s)</span>
         </p>
 
         <RouterLink class="submit-button" :to="{ name: 'register' }">
