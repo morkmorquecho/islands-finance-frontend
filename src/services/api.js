@@ -10,6 +10,18 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 })
 
+const AUTH_ENDPOINTS_WITHOUT_REFRESH = [
+  '/auth/login/',
+  '/auth/register/',
+  '/auth/token/refresh/',
+  '/auth/oauth/google/',
+  '/auth/oauth/facebook/',
+]
+
+function isAuthEndpointWithoutRefresh(url) {
+  return AUTH_ENDPOINTS_WITHOUT_REFRESH.some((path) => url?.includes(path))
+}
+
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 let isRefreshing = false
 let failedQueue = []
@@ -52,18 +64,34 @@ function normalizeFieldErrors(context) {
 
 function resolveErrorType(context) {
   if (typeof context === 'string' && context.length > 0) return 'message_error'
-  if (typeof context === 'object' && context !== null && Object.keys(context).length > 0)
-    return 'field_errors'
+
+  if (typeof context === 'object' && context !== null) {
+    const keys = Object.keys(context)
+    // {detail: "..."} es un mensaje único, no errores por campo
+    if (keys.length === 1 && keys[0] === 'detail' && typeof context.detail === 'string') {
+      return 'message_error'
+    }
+    if (keys.length > 0) return 'field_errors'
+  }
+
   return 'unknown'
 }
 
 function createApiError(responseData) {
   const rawContext = responseData.errors?.context ?? {}
-  const context = normalizeFieldErrors(rawContext)
-  const type = resolveErrorType(context)
+  const type = resolveErrorType(rawContext)
+
+  const isDetailMessage = type === 'message_error' && typeof rawContext === 'object' && rawContext !== null
+
+  const context = type === 'field_errors' ? normalizeFieldErrors(rawContext) : {}
 
   const message =
-    responseData.message || (typeof rawContext === 'string' ? rawContext : 'Error inesperado')
+    responseData.message ||
+    (typeof rawContext === 'string'
+      ? rawContext
+      : isDetailMessage
+        ? rawContext.detail
+        : 'Error inesperado')
 
   const error = new Error(message)
   error.errors = responseData.errors
@@ -170,13 +198,17 @@ export function setupInterceptors(pinia) {
       // ── 401: intentar refresh SIEMPRE primero, antes de tocar el body ────
       // (incluye requests con responseType: 'blob' — si no, un token
       // expirado en una descarga nunca dispara el refresh)
-      if (response?.status === 401 && !originalRequest._retry) {
-        if (!authStore.refreshToken) {
-          authStore.clearSession()
-          const { default: router } = await import('@/router')
-          router.push({ name: 'login' })
-          return Promise.reject(error)
-        }
+        if (
+          response?.status === 401 &&
+          !originalRequest._retry &&
+          !isAuthEndpointWithoutRefresh(originalRequest.url)) 
+          {
+            if (!authStore.refreshToken) {
+            authStore.clearSession()
+            const { default: router } = await import('@/router')
+            router.push({ name: 'login' })
+            return Promise.reject(error)
+          }
 
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
