@@ -36,6 +36,14 @@ type FinanceModule = {
 const FIRST_VISIT_KEY = "island-finance-home-introduction-seen";
 const ACCENTS = ["coral", "teal", "sun"] as const;
 
+// Columnas base para el grid de archipiélagos en desktop/tablet.
+const BASE_COLUMNS = 3;
+// Si con BASE_COLUMNS el número de archipiélagos ocuparía más de 2 filas,
+// se cambia a este número de columnas en su lugar.
+const EXPANDED_COLUMNS = 4;
+// Umbral: con 3 columnas, más de 2 filas significa más de 6 elementos.
+const EXPANDED_THRESHOLD = BASE_COLUMNS * 2;
+
 const moneyFormatter = new Intl.NumberFormat("es-MX", {
   style: "currency",
   currency: "MXN",
@@ -181,8 +189,14 @@ const chartModules = computed(() =>
     })),
 );
 
+// Si con 3 columnas los archipiélagos ocuparían más de 2 filas, usa 4 columnas.
+const archipelagoColumns = computed(() =>
+  modules.value.length > EXPANDED_THRESHOLD ? EXPANDED_COLUMNS : BASE_COLUMNS,
+);
+
 const clusterCountStyle = computed(() => ({
   "--cluster-count": String(modules.value.length || 1),
+  "--archipelago-columns": String(archipelagoColumns.value),
 }));
 
 const totalPatrimonio = computed(() =>
@@ -607,7 +621,9 @@ onUnmounted(() => {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Antes: siempre 3 columnas. Ahora usa la variable calculada en JS:
+     3 columnas por defecto, 4 si hay más de 2 filas de archipiélagos. */
+  grid-template-columns: repeat(var(--archipelago-columns, 3), minmax(0, 1fr));
   align-items: end;
   gap: clamp(12px, 3vw, 54px);
   width: min(1180px, calc(100% - 40px));
@@ -869,11 +885,16 @@ onUnmounted(() => {
     padding-inline: 11px;
   }
 
+  /* Antes, el transform de 7rem heredado de la regla base empujaba el bloque
+     hacia abajo una cantidad fija. En móvil el layout es de 1 columna y
+     apilado, así que el bloque completo es mucho más alto — ese mismo
+     desplazamiento ya no alcanzaba a "hundir" las islas dentro del agua y
+     se veían flotando por encima del océano. Se reduce el offset aquí. */
   .archipelago-map {
     grid-template-columns: 1fr;
     width: min(520px, calc(100% - 24px));
     min-height: auto;
-    margin-top: 0;
+    margin-top: 30rem;
     padding: 48px 0 74px;
   }
 
