@@ -1,16 +1,24 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import usersService from "@/services/users.service";
+import { useApiError } from "@/composable/useApiError";
 import AuthField from "@/components/auth/AuthField.vue";
 
+const {
+  errorMessage,
+  fieldErrors,
+  retryAfterSeconds,
+  handle: handleApiError,
+  reset: resetApiError,
+} = useApiError();
+
 const emailForm = ref({ email: "", password: "" });
-const emailError = ref("");
 const emailSuccess = ref("");
 const emailLoading = ref(false);
 const showEmailPw = ref(false);
 
 async function requestEmailChange() {
-  emailError.value = "";
+  resetApiError();
   emailSuccess.value = "";
 
   emailLoading.value = true;
@@ -19,10 +27,7 @@ async function requestEmailChange() {
     emailSuccess.value = "Revisa tu nuevo correo para confirmar el cambio.";
     emailForm.value = { email: "", password: "" };
   } catch (err) {
-    emailError.value =
-      err instanceof Error
-        ? err.message
-        : "No pudimos solicitar el cambio. Intenta nuevamente.";
+    handleApiError(err);
   } finally {
     emailLoading.value = false;
   }
@@ -39,7 +44,12 @@ async function requestEmailChange() {
     </div>
 
     <form class="settings-form" @submit.prevent="requestEmailChange">
-      <AuthField id="email" label="Nuevo correo" icon="✉">
+      <AuthField
+        id="email"
+        label="Nuevo correo"
+        icon="✉"
+        :error="fieldErrors.email?.[0]"
+      >
         <input
           id="email"
           v-model="emailForm.email"
@@ -50,7 +60,12 @@ async function requestEmailChange() {
         />
       </AuthField>
 
-      <AuthField id="email_password" label="Contraseña actual" icon="●">
+      <AuthField
+        id="email_password"
+        label="Contraseña actual"
+        icon="●"
+        :error="fieldErrors.password?.[0]"
+      >
         <input
           id="email_password"
           v-model="emailForm.password"
@@ -70,7 +85,10 @@ async function requestEmailChange() {
         </button>
       </AuthField>
 
-      <p v-if="emailError" class="error-message" role="alert">{{ emailError }}</p>
+      <p v-if="errorMessage" class="error-message" role="alert">
+        {{ errorMessage }}
+        <span v-if="retryAfterSeconds"> ({{ retryAfterSeconds }}s)</span>
+      </p>
       <p v-if="emailSuccess" class="success-message" role="status">{{ emailSuccess }}</p>
 
       <button class="submit-button" type="submit" :disabled="emailLoading">

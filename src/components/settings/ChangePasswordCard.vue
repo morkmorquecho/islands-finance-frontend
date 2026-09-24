@@ -1,14 +1,23 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import authService from "@/services/auth.service";
+import { useApiError } from "@/composable/useApiError";
 import AuthField from "@/components/auth/AuthField.vue";
+
+const {
+  errorMessage,
+  fieldErrors,
+  retryAfterSeconds,
+  handle: handleApiError,
+  reset: resetApiError,
+} = useApiError();
 
 const pwForm = ref({
   current_password: "",
   new_password: "",
   confirm_new_password: "",
 });
-const pwError = ref("");
+const localError = ref("");
 const pwSuccess = ref("");
 const pwLoading = ref(false);
 const showCurrentPw = ref(false);
@@ -20,11 +29,12 @@ const newPasswordsMatch = computed(
 );
 
 async function changePassword() {
-  pwError.value = "";
+  resetApiError();
+  localError.value = "";
   pwSuccess.value = "";
 
   if (!newPasswordsMatch.value) {
-    pwError.value = "Las contraseñas nuevas no coinciden.";
+    localError.value = "Las contraseñas nuevas no coinciden.";
     return;
   }
 
@@ -38,10 +48,7 @@ async function changePassword() {
       confirm_new_password: "",
     };
   } catch (err) {
-    pwError.value =
-      err instanceof Error
-        ? err.message
-        : "No pudimos actualizar tu contraseña. Intenta nuevamente.";
+    handleApiError(err);
   } finally {
     pwLoading.value = false;
   }
@@ -58,7 +65,12 @@ async function changePassword() {
     </div>
 
     <form class="settings-form" @submit.prevent="changePassword">
-      <AuthField id="current_password" label="Contraseña actual" icon="●">
+      <AuthField
+        id="current_password"
+        label="Contraseña actual"
+        icon="●"
+        :error="fieldErrors.current_password?.[0]"
+      >
         <input
           id="current_password"
           v-model="pwForm.current_password"
@@ -78,7 +90,12 @@ async function changePassword() {
         </button>
       </AuthField>
 
-      <AuthField id="new_password" label="Nueva contraseña" icon="●">
+      <AuthField
+        id="new_password"
+        label="Nueva contraseña"
+        icon="●"
+        :error="fieldErrors.new_password?.[0]"
+      >
         <input
           id="new_password"
           v-model="pwForm.new_password"
@@ -99,7 +116,12 @@ async function changePassword() {
         </button>
       </AuthField>
 
-      <AuthField id="confirm_new_password" label="Confirmar nueva contraseña" icon="●">
+      <AuthField
+        id="confirm_new_password"
+        label="Confirmar nueva contraseña"
+        icon="●"
+        :error="fieldErrors.confirm_new_password?.[0]"
+      >
         <input
           id="confirm_new_password"
           v-model="pwForm.confirm_new_password"
@@ -120,7 +142,10 @@ async function changePassword() {
         </button>
       </AuthField>
 
-      <p v-if="pwError" class="error-message" role="alert">{{ pwError }}</p>
+      <p v-if="localError || errorMessage" class="error-message" role="alert">
+        {{ localError || errorMessage }}
+        <span v-if="retryAfterSeconds"> ({{ retryAfterSeconds }}s)</span>
+      </p>
       <p v-if="pwSuccess" class="success-message" role="status">{{ pwSuccess }}</p>
 
       <button class="submit-button" type="submit" :disabled="pwLoading">
