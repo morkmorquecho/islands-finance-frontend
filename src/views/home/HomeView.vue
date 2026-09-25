@@ -7,7 +7,7 @@ import SeabedBackground from "../../components/SeabedBackground.vue";
 import ModuleCluster from "../../components/ModuleCluster.vue";
 import ModuleChart from "../../components/ModuleChart.vue";
 import LoadingScreen from "@/components/LoadingScreen.vue";
-
+import BuyMeCoffeeBtn from "@/components/ui/BuyMeCoffeeBtn.vue";
 import { useUIStore } from "@/stores/ui";
 import { useAuthStore } from "@/stores/auth";
 import modulesService from "@/services/modules.service";
@@ -320,28 +320,18 @@ onUnmounted(() => {
           Island Finance
         </RouterLink>
 
-        <div class="header-actions">
-          <button
-            class="help-button"
-            type="button"
-            aria-label="Abrir guía de Island Finance"
-            @click="openIntroduction"
-          >
-            ?
-          </button>
+         <div class="header-actions">
+           <BuyMeCoffeeBtn />
+            <button class="help-button" type="button" @click="openIntroduction">?</button>
+            <button class="new-module-button" type="button" @click="openModuleForm()">
+              + Archipiélago
+            </button>
 
-          <button class="new-module-button" type="button" @click="openModuleForm()">
-            + Archipiélago
-          </button>
 
-          <RouterLink
-            class="profile-button"
-            :to="{ name: 'settings' }"
-            aria-label="Abrir ajustes de perfil"
-          >
-            {{ userInitials || "•" }}
-          </RouterLink>
-        </div>
+            <RouterLink class="profile-button" :to="{ name: 'settings' }">
+              {{ userInitials || "•" }}
+            </RouterLink>
+          </div>
       </header>
 
       <section id="patrimonio" class="finance-summary" aria-labelledby="page-title">
