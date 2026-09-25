@@ -828,6 +828,7 @@ onUnmounted(() => {
   background: #386b6a;
   font: 700 13px var(--font-sans);
   cursor: pointer;
+  margin-top: 3rem;
 }
 
 .map-modal-enter-active,
