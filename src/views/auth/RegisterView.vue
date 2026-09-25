@@ -1,14 +1,22 @@
 <!-- src/views/RegisterView.vue -->
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import authService from "@/services/auth.service";
+import { useApiError } from "@/composable/useApiError";
 import AuthShell from "@/components/auth/AuthShell.vue";
 import AuthIntro from "@/components/auth/AuthIntro.vue";
 import AuthCard from "@/components/auth/AuthCard.vue";
 import AuthField from "@/components/auth/AuthField.vue";
 
 const router = useRouter();
+const {
+  errorMessage,
+  fieldErrors,
+  retryAfterSeconds,
+  handle: handleApiError,
+  reset: resetApiError,
+} = useApiError();
 
 const form = ref({
   username: "",
@@ -17,39 +25,51 @@ const form = ref({
   confirm_password: "",
 });
 
-const errorMsg = ref("");
+const localError = ref("");
 const successMsg = ref("");
 const loading = ref(false);
 const showPassword = ref(false);
 const showConfirm = ref(false);
+let redirectTimer: ReturnType<typeof setTimeout> | null = null;
 
 const passwordsMatch = computed(
   () => form.value.password === form.value.confirm_password
 );
 
 async function handleSubmit() {
-  errorMsg.value = "";
+  resetApiError();
+  localError.value = "";
   successMsg.value = "";
 
   if (!passwordsMatch.value) {
-    errorMsg.value = "Las contraseñas no coinciden.";
+    localError.value = "Las contraseñas no coinciden.";
     return;
   }
 
   loading.value = true;
+  const startTime = Date.now();
+  const MIN_DELAY = 7000; // 5 segundos
+
   try {
     await authService.register(form.value);
-    successMsg.value = "Cuenta creada. Revisa tu correo para verificarla.";
-    setTimeout(() => router.push({ name: "login" }), 2000);
+    successMsg.value = "Cuenta creada. Revisa tu correo para verificarla, recuerda revisar spam";
+
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, MIN_DELAY - elapsed);
+
+    redirectTimer = setTimeout(() => {
+      router.push({ name: "login" });
+    }, remaining);
   } catch (err) {
-    errorMsg.value =
-      err instanceof Error
-        ? err.message
-        : "No pudimos crear tu cuenta. Intenta nuevamente.";
+    handleApiError(err);
   } finally {
     loading.value = false;
   }
 }
+
+onBeforeUnmount(() => {
+  if (redirectTimer) clearTimeout(redirectTimer);
+});
 </script>
 
 <template>
@@ -66,7 +86,12 @@ async function handleSubmit() {
       heading="Crear cuenta"
       @submit="handleSubmit"
     >
-      <AuthField id="username" label="Usuario" icon="@">
+      <AuthField
+        id="username"
+        label="Usuario"
+        icon="@"
+        :error="fieldErrors.username?.[0]"
+      >
         <input
           id="username"
           v-model="form.username"
@@ -77,7 +102,12 @@ async function handleSubmit() {
         />
       </AuthField>
 
-      <AuthField id="email" label="Correo" icon="✉">
+      <AuthField
+        id="email"
+        label="Correo"
+        icon="✉"
+        :error="fieldErrors.email?.[0]"
+      >
         <input
           id="email"
           v-model="form.email"
@@ -88,7 +118,12 @@ async function handleSubmit() {
         />
       </AuthField>
 
-      <AuthField id="password" label="Contraseña" icon="●">
+      <AuthField
+        id="password"
+        label="Contraseña"
+        icon="●"
+        :error="fieldErrors.password?.[0]"
+      >
         <input
           id="password"
           v-model="form.password"
@@ -108,7 +143,12 @@ async function handleSubmit() {
         </button>
       </AuthField>
 
-      <AuthField id="confirm_password" label="Confirmar contraseña" icon="●">
+      <AuthField
+        id="confirm_password"
+        label="Confirmar contraseña"
+        icon="●"
+        :error="fieldErrors.confirm_password?.[0]"
+      >
         <input
           id="confirm_password"
           v-model="form.confirm_password"
@@ -128,8 +168,9 @@ async function handleSubmit() {
         </button>
       </AuthField>
 
-      <p v-if="errorMsg" class="error-message" role="alert">
-        {{ errorMsg }}
+      <p v-if="localError || errorMessage" class="error-message" role="alert">
+        {{ localError || errorMessage }}
+        <span v-if="retryAfterSeconds"> ({{ retryAfterSeconds }}s)</span>
       </p>
       <p v-if="successMsg" class="success-message" role="status">
         {{ successMsg }}

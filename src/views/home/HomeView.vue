@@ -444,8 +444,9 @@ onUnmounted(() => {
                 criptomonedas o inversiones.
               </p>
               <p>
-                También puedes registrar gastos, objetivos y aportaciones periódicas
-                para entender cómo crece tu mapa con el tiempo.
+                También puedes registrar tus gastos, objetivos y aportaciones, 
+                mientras visualizas las ganancias generadas por intereses y cómo cada movimiento 
+                hace crecer tu patrimonio y transforma tu mapa con el tiempo.
               </p>
             </div>
 

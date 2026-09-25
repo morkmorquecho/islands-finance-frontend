@@ -67,9 +67,10 @@ function resolveErrorType(context) {
 
   if (typeof context === 'object' && context !== null) {
     const keys = Object.keys(context)
-    // {detail: "..."} es un mensaje único, no errores por campo
-    if (keys.length === 1 && keys[0] === 'detail' && typeof context.detail === 'string') {
-      return 'message_error'
+    // {detail: "..."} es un mensaje único; {detail: {campo: [...]}} son
+    // errores de un serializer (DRF los envuelve así en ValidationError)
+    if (keys.length === 1 && keys[0] === 'detail') {
+      return typeof context.detail === 'string' ? 'message_error' : 'field_errors'
     }
     if (keys.length > 0) return 'field_errors'
   }
@@ -81,9 +82,23 @@ function createApiError(responseData) {
   const rawContext = responseData.errors?.context ?? {}
   const type = resolveErrorType(rawContext)
 
-  const isDetailMessage = type === 'message_error' && typeof rawContext === 'object' && rawContext !== null
+  const isDetailMessage =
+    type === 'message_error' && typeof rawContext === 'object' && rawContext !== null
 
-  const context = type === 'field_errors' ? normalizeFieldErrors(rawContext) : {}
+  // Cuando el error viene envuelto como {detail: {campo: [...]}} (serializer
+  // de DRF), los errores de campo reales están un nivel más adentro.
+  const isWrappedDetail =
+    type === 'field_errors' &&
+    typeof rawContext === 'object' &&
+    rawContext !== null &&
+    Object.keys(rawContext).length === 1 &&
+    'detail' in rawContext &&
+    typeof rawContext.detail === 'object' &&
+    rawContext.detail !== null
+
+  const fieldSource = isWrappedDetail ? rawContext.detail : rawContext
+
+  const context = type === 'field_errors' ? normalizeFieldErrors(fieldSource) : {}
 
   const message =
     responseData.message ||
