@@ -48,7 +48,7 @@ async function handleSubmit() {
 
   loading.value = true;
   const startTime = Date.now();
-  const MIN_DELAY = 7000; // 5 segundos
+  const MIN_DELAY = 10000; 
 
   try {
     await authService.register(form.value);
