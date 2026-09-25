@@ -286,7 +286,7 @@ onMounted(() => {
   loadModules();
   updateProgress();
 
-  if (!window.localStorage.getItem(FIRST_VISIT_KEY)) {
+  if (authStore.isAuthenticated && !window.localStorage.getItem(FIRST_VISIT_KEY)) {
     showIntroduction.value = true;
   }
 
