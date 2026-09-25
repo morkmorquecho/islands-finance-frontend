@@ -133,7 +133,10 @@ async function doRefresh(authStore) {
     refresh: authStore.refreshToken,
   })
   const { access, refresh } = data.data
-  authStore.setTokens(access, refresh)
+  // El store expone setSession({ access, refresh, user }), no setTokens(access, refresh).
+  // Si el backend no rota el refresh token (ROTATE_REFRESH_TOKENS=False en SIMPLE_JWT),
+  // 'refresh' viene undefined: conservamos el que ya teníamos para no perderlo.
+  authStore.setSession({ access, refresh: refresh ?? authStore.refreshToken })
   return access
 }
 
