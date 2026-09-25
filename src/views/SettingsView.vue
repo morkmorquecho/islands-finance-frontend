@@ -1,9 +1,17 @@
 <script setup lang="ts">
+  import { computed } from "vue";
+  import { useAuthStore } from "@/stores/auth";
+
   import SettingsHeader from "@/components/settings/SettingsHeader.vue";
   import SettingsLinkCard from "@/components/settings/SettingsLinkCard.vue";
   import ChangePasswordCard from "@/components/settings/ChangePasswordCard.vue";
   import ChangeEmailCard from "@/components/settings/ChangeEmailCard.vue";
   import LogoutCard from "@/components/settings/LogoutCard.vue";
+
+  const authStore = useAuthStore();
+  const hideSensitiveCards = computed(
+    () => authStore.user?.username?.trim().toLowerCase() === "user",
+  );
 </script>
 
 <template>
@@ -29,8 +37,8 @@
       :to="{ name: 'goals' }"
     />
 
-    <ChangePasswordCard />
-    <ChangeEmailCard />
+    <ChangePasswordCard v-if="!hideSensitiveCards" />
+    <ChangeEmailCard v-if="!hideSensitiveCards" />
     <LogoutCard />
   </main>
 </template>
