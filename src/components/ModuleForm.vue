@@ -31,12 +31,13 @@ const isPresetType = (type) => TYPE_PRESETS.some((opt) => opt.value === type)
 
 function buildInitialModuleForm() {
   const mod = existingModule.value
-  if (!mod) return { name: '', type: 'savings', customType: '' }
+  if (!mod) return { name: '', type: 'savings', customType: '', order: 1 }
   const typeIsPreset = isPresetType(mod.type)
   return {
     name: mod.name ?? '',
     type: typeIsPreset ? mod.type : 'other',
     customType: typeIsPreset ? '' : (mod.type ?? ''),
+    order: mod.order ?? 1,
   }
 }
 
@@ -162,7 +163,11 @@ async function submitEdit() {
   loading.value = true
   try {
     const type = moduleForm.value.type === 'other' ? moduleForm.value.customType.trim() : moduleForm.value.type
-    const data = { name: moduleForm.value.name.trim(), type }
+    const data = {
+      name: moduleForm.value.name.trim(),
+      type,
+      order: Number(moduleForm.value.order) || 1,
+    }
     const result = await modulesService.update(existingModule.value.id, data)
     emit('success', result)
   } catch (err) {
@@ -183,8 +188,11 @@ async function submitCreateWithIsland() {
   let createdModule = null
   try {
     const type = moduleForm.value.type === 'other' ? moduleForm.value.customType.trim() : moduleForm.value.type
-    createdModule = await modulesService.create({ name: moduleForm.value.name.trim(), type })
-
+    createdModule = await modulesService.create({
+      name: moduleForm.value.name.trim(),
+      type,
+      order: Number(moduleForm.value.order) || 1,
+    })
     const islandPayload = buildIslandPayload(createdModule.id)
     await islandsService.create(islandPayload)
 
@@ -260,6 +268,20 @@ onMounted(() => {
             <option v-for="opt in TYPE_PRESETS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
             <option value="other">Otro</option>
           </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="module-order">Orden</label>
+        <div class="input-shell">
+          <input
+            id="module-order"
+            v-model.number="moduleForm.order"
+            type="number"
+            min="0"
+            step="1"
+            placeholder="1"
+          />
         </div>
       </div>
 
