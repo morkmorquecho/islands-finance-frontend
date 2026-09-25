@@ -3,11 +3,15 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import goalsService from '@/services/goals.service'
 import islandsService from '@/services/islands.service'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 
 // Marcar un cumplimiento crea un movimiento real en el ledger (ver
 // GoalViewSet.mark_completion), así que cualquier total que dependa de eso
 // en un componente padre (p. ej. un dashboard) debe refrescarse.
 const emit = defineEmits(['changed'])
+import { useConfirmDialog } from '@/composable/useConfirmDialog.js'
+
+const { confirmDialog, openConfirm, closeConfirm, handleConfirm } = useConfirmDialog()
 
 const MAX_VISIBLE_DONE_COMPLETIONS = 3
 
@@ -192,15 +196,23 @@ async function toggleActive(goal) {
   }
 }
 
-async function deleteGoal(goal) {
-  if (!confirm('¿Eliminar este objetivo? Esta acción no se puede deshacer.')) return
-  try {
-    await goalsService.destroy(goal.id)
-    goals.value = goals.value.filter((g) => g.id !== goal.id)
-    if (expandedGoal.value === goal.id) expandedGoal.value = null
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'No pudimos eliminar el objetivo.'
-  }
+function deleteGoal(goal) {
+  openConfirm({
+    title: '¿Eliminar este objetivo?',
+    message: 'Esta acción no se puede deshacer. Se perderá también su historial de cumplimiento.',
+    confirmText: 'Eliminar objetivo',
+    cancelText: 'Cancelar',
+    onConfirm: async () => {
+      try {
+        await goalsService.destroy(goal.id)
+        goals.value = goals.value.filter((g) => g.id !== goal.id)
+        if (expandedGoal.value === goal.id) expandedGoal.value = null
+      } catch (err) {
+        error.value = err instanceof Error ? err.message : 'No pudimos eliminar el objetivo.'
+        throw err // para que el diálogo no se cierre si falla
+      }
+    },
+  })
 }
 
 /* ---------- Cumplimientos ---------- */
@@ -543,6 +555,18 @@ async function quickMarkComplete(goal) {
       </section>
     </template>
   </main>
+
+  
+  <ConfirmDialog
+    v-model="confirmDialog.open"
+    :title="confirmDialog.title"
+    :message="confirmDialog.message"
+    :confirm-text="confirmDialog.confirmText"
+    :cancel-text="confirmDialog.cancelText"
+    :loading="confirmDialog.loading"
+    @confirm="handleConfirm"
+    @cancel="closeConfirm"
+  />
 </template>
 
 <style scoped>

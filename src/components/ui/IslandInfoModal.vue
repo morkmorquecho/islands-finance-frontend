@@ -3,6 +3,10 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import islandsService from '@/services/islands.service'
 import transactionsService from '@/services/transactions.service'
 import goalsService from '@/services/goals.service'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import { useConfirmDialog } from '@/composable/useConfirmDialog.js'
+
+const { confirmDialog, openConfirm, closeConfirm, handleConfirm } = useConfirmDialog()
 
 const BASE_CURRENCY = 'MXN' // la moneda a la que convert_to_base() siempre normaliza
 
@@ -191,16 +195,24 @@ function editIsland() {
   emit('edit-island', island.value)
 }
 
-async function deleteIsland() {
+function deleteIsland() {
   if (!island.value || isSystemIsland.value) return
-  if (!window.confirm(`¿Eliminar la isla “${island.value.name}”? Esta acción no se puede deshacer.`)) return
 
-  try {
-    await islandsService.destroy(island.value.id)
-    emit('deleted')
-  } catch (err) {
-    error.value = err.message ?? 'No se pudo eliminar la isla.'
-  }
+  openConfirm({
+    title: `¿Eliminar la isla “${island.value.name}”?`,
+    message: 'Esta acción no se puede deshacer. Se borrarán también sus movimientos y metas asociadas.',
+    confirmText: 'Eliminar isla',
+    cancelText: 'Cancelar',
+    onConfirm: async () => {
+      try {
+        await islandsService.destroy(island.value.id)
+        emit('deleted')
+      } catch (err) {
+        error.value = err.message ?? 'No se pudo eliminar la isla.'
+        throw err
+      }
+    },
+  })
 }
 
 function createTransferId() {
@@ -607,6 +619,17 @@ onMounted(loadIsland)
       </template>
     </div>
   </div>
+
+  <ConfirmDialog
+    v-model="confirmDialog.open"
+    :title="confirmDialog.title"
+    :message="confirmDialog.message"
+    :confirm-text="confirmDialog.confirmText"
+    :cancel-text="confirmDialog.cancelText"
+    :loading="confirmDialog.loading"
+    @confirm="handleConfirm"
+    @cancel="closeConfirm"
+  />
 </template>
 
 <style scoped>
