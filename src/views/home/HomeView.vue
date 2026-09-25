@@ -286,7 +286,7 @@ onMounted(() => {
   loadModules();
   updateProgress();
 
-  if (!window.localStorage.getItem(FIRST_VISIT_KEY)) {
+  if (authStore.isAuthenticated && !window.localStorage.getItem(FIRST_VISIT_KEY)) {
     showIntroduction.value = true;
   }
 
@@ -828,6 +828,7 @@ onUnmounted(() => {
   background: #386b6a;
   font: 700 13px var(--font-sans);
   cursor: pointer;
+  margin-top: 3rem;
 }
 
 .map-modal-enter-active,

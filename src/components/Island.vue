@@ -14,7 +14,6 @@ const props = withDefaults(
     animationDelay: 0,
     variant: 0,
     compact: false,
-    vegetation: false,
   },
 );
 
@@ -44,6 +43,13 @@ const islandId = useId().replaceAll(":", "");
 const shapeIndex = computed(() => props.variant % COASTS.length);
 const coast = computed(() => COASTS[shapeIndex.value]);
 const landmass = computed(() => LANDMASSES[shapeIndex.value]);
+
+// Si el padre no especifica `vegetation` explícitamente, se decide al azar
+// una sola vez al montar el componente (no en cada render).
+const randomHasPalm = Math.random() < 0.4; // ~40% de probabilidad
+const hasPalm = computed(() =>
+  props.vegetation !== undefined ? props.vegetation : randomHasPalm,
+);
 </script>
 
 <template>
@@ -136,7 +142,7 @@ const landmass = computed(() => LANDMASSES[shapeIndex.value]);
            C134 96 131 95 129 92 Z"
       />
 
-      <g v-if="vegetation" class="island-palm" transform="translate(79 35)">
+      <g v-if="hasPalm" class="island-palm" transform="translate(79 35)">
         <path class="palm-shadow" d="M-13 29 C-5 26 9 25 20 29" />
         <path class="palm-trunk" d="M0 29 C4 21 3 12 8 2" />
         <path
