@@ -1,38 +1,87 @@
-# island-finance
+# 🏝️ Island Finance: Frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Web client for **Island Finance**, a personal finance app where your money lives on islands: financial modules are archipelagos and each account is an island.
 
-## Recommended IDE Setup
+> ⚙️ Backend: [islands-finance-backend](https://github.com/morkmorquecho/islands-finance-backend)
+> 🌐 Live app: [islandfinance.cc](https://islandfinance.cc)
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+This repository is public so you can see how I structure and build a Vue 3 application. It is not meant to be cloned and run.
 
-## Recommended Browser Setup
+## Screenshots
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+### 1. Home: the archipelago concept
+The landing view introduces the core idea of the app: your finances are organized as **archipelagos** (financial modules) made of **islands** (individual accounts and assets).
 
-## Customize configuration
+![Home](./public/screenshoot/inicio.png)
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+### 2. Beneath the surface
+A detailed view that shows exactly how much money each island holds, individually.
 
-## Project Setup
+![Beneath the surface](./public/screenshoot/bajo-profundidades.png)
 
-```sh
-npm install
+### 3. Island detail
+Each island has its own page with gains, performance and detailed information about the asset or account.
+
+![Island detail](./public/screenshoot/isla.png)
+
+### 4. Expenses
+A dedicated expenses panel to keep track of where your money goes.
+
+![Expenses](./public/screenshoot/gastos.png)
+
+## Features
+
+- **Archipelago-themed interface** with animated tropical design elements
+- **Per-island breakdown** of balances, gains and details
+- **Expenses panel** to track spending
+- **Modal-based form system** to create and edit islands and accounts
+- **Authentication flow** with JWT, automatic token refresh and request rate limiting
+- **Protected routes** with Vue Router navigation guards
+- **Centralized state** with Pinia
+- **Asset search with autocomplete** backed by live market data
+- **Clear handling of unavailable prices** in the UI
+
+## Stack
+
+Vue 3 · Vue Router · Pinia · Axios · Vercel
+
+## Engineering Decisions
+
+**API client generated from the OpenAPI schema.**
+The service layer, a Pinia auth store, router guards and the main views were scaffolded from the backend's OpenAPI schema, which keeps the frontend in sync with the API contract instead of hand-writing every request.
+
+**One place for auth and request logic.**
+`api.js` centralizes JWT handling, token refresh and rate limiting, so views and stores never deal with expired tokens directly.
+
+**Scoped styles over global CSS.**
+The global stylesheet was refactored into scoped component styles, so every component owns its look and the tropical theme stays maintainable as the app grows.
+
+**Reusable modal form system.**
+Forms share a single modal-based pattern, which keeps creation and editing flows consistent across islands and accounts.
+
+**Honest UI for missing data.**
+When the backend reports a price as unavailable, the interface says so instead of showing misleading values.
+
+## Project Structure
+
+⚠️ VERIFICAR: ajusta a tu estructura real.
+
+```
+src/
+├── api/          # API client and generated services
+├── stores/       # Pinia stores
+├── router/       # Routes and navigation guards
+├── views/        # Pages
+├── components/   # Reusable components and modals
+└── assets/       # Styles and static assets
+public/
+└── screenshoot/  # README screenshots
 ```
 
-### Compile and Hot-Reload for Development
+## Deployment
 
-```sh
-npm run dev
-```
+Deployed on Vercel, connected to the production API at `api.islandfinance.cc`.
 
-### Compile and Minify for Production
+## License
 
-```sh
-npm run build
-```
+© Matias Morquecho. All rights reserved. The code is shown for portfolio purposes and may not be copied or redistributed without permission.
