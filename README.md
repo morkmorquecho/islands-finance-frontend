@@ -63,9 +63,6 @@ Forms share a single modal-based pattern, which keeps creation and editing flows
 When the backend reports a price as unavailable, the interface says so instead of showing misleading values.
 
 ## Project Structure
-
-⚠️ VERIFICAR: ajusta a tu estructura real.
-
 ```
 src/
 ├── api/          # API client and generated services
