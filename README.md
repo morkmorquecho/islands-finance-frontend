@@ -27,7 +27,7 @@ Each island has its own page with gains, performance and detailed information ab
 ### 4. Expenses
 A dedicated expenses panel to keep track of where your money goes.
 
-![Expenses](./public/screenshoot/gastos.png)
+![Expenses](./public/screenshoot/gasto.png)
 
 ## Features
 
