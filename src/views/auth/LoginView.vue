@@ -2,11 +2,13 @@
 import { ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-import { useApiError } from "@/composable/useApiError"
+import authService from "@/services/auth.service";
+import { useApiError } from "@/composable/useApiError";
 import AuthShell from "@/components/auth/AuthShell.vue";
 import AuthIntro from "@/components/auth/AuthIntro.vue";
 import AuthCard from "@/components/auth/AuthCard.vue";
 import AuthField from "@/components/auth/AuthField.vue";
+import GoogleAuthButton from "@/components/auth/GoogleAuthButton.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -16,23 +18,50 @@ const { errorMessage, fieldErrors, retryAfterSeconds, handle: handleApiError, re
 const form = ref({ username: "", password: "" });
 const loading = ref(false);
 const showPassword = ref(false);
+const localError = ref("");
+
+function redirectAfterLogin() {
+  router.push(
+    typeof route.query.redirect === "string"
+      ? route.query.redirect
+      : { name: "home" }
+  );
+}
 
 async function handleSubmit() {
   resetApiError();
+  localError.value = "";
   loading.value = true;
   try {
     await auth.login(form.value);
-    router.push(
-      typeof route.query.redirect === "string"
-        ? route.query.redirect
-        : { name: "home" }
-    );
+    redirectAfterLogin();
   } catch (err) {
     handleApiError(err);
-  } 
-  finally {
+  } finally {
     loading.value = false;
   }
+}
+
+// ── Google ────────────────────────────────────────────────────────────────────
+async function handleGoogleSuccess(credential: string) {
+  resetApiError();
+  localError.value = "";
+  loading.value = true;
+  try {
+    // El interceptor de api.js ya devuelve response.data.data = { access, refresh, user }.
+    // Tipado como any porque TS infiere AxiosResponse desde el JS del servicio.
+    const data: any = await authService.loginWithGoogle(credential);
+    auth.setSession(data);
+    redirectAfterLogin();
+  } catch (err) {
+    handleApiError(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+function handleGoogleError(msg: string) {
+  localError.value = msg;
 }
 </script>
 
@@ -60,8 +89,8 @@ async function handleSubmit() {
         </button>
       </AuthField>
 
-      <p v-if="errorMessage" class="error-message" role="alert">
-        {{ errorMessage }}
+      <p v-if="localError || errorMessage" class="error-message" role="alert">
+        {{ localError || errorMessage }}
         <span v-if="retryAfterSeconds"> ({{ retryAfterSeconds }}s)</span>
       </p>
 
@@ -70,6 +99,16 @@ async function handleSubmit() {
         <span aria-hidden="true">→</span>
       </button>
 
+      <div class="google-divider" role="separator">
+        <span>o continúa con</span>
+      </div>
+
+      <GoogleAuthButton
+        text="signin_with"
+        @success="handleGoogleSuccess"
+        @error="handleGoogleError"
+      />
+
       <p class="register-copy">
         ¿Aún no tienes una cuenta?
         <RouterLink :to="{ name: 'register' }">Crea tu isla financiera</RouterLink>
@@ -77,3 +116,23 @@ async function handleSubmit() {
     </AuthCard>
   </AuthShell>
 </template>
+
+<style scoped>
+.google-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.google-divider::before,
+.google-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.25;
+}
+</style>

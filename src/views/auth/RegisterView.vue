@@ -3,13 +3,16 @@
 import { ref, computed, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import authService from "@/services/auth.service";
+import { useAuthStore } from "@/stores/auth";
 import { useApiError } from "@/composable/useApiError";
 import AuthShell from "@/components/auth/AuthShell.vue";
 import AuthIntro from "@/components/auth/AuthIntro.vue";
 import AuthCard from "@/components/auth/AuthCard.vue";
 import AuthField from "@/components/auth/AuthField.vue";
+import GoogleAuthButton from "@/components/auth/GoogleAuthButton.vue";
 
 const router = useRouter();
+const authStore = useAuthStore();
 const {
   errorMessage,
   fieldErrors,
@@ -48,11 +51,12 @@ async function handleSubmit() {
 
   loading.value = true;
   const startTime = Date.now();
-  const MIN_DELAY = 15000; 
+  const MIN_DELAY = 15000;
 
   try {
     await authService.register(form.value);
-    successMsg.value = "Cuenta creada. Revisa tu correo para verificarla, recuerda revisar spam";
+    successMsg.value =
+      "Cuenta creada. Revisa tu correo para verificarla, recuerda revisar spam";
 
     const elapsed = Date.now() - startTime;
     const remaining = Math.max(0, MIN_DELAY - elapsed);
@@ -65,6 +69,30 @@ async function handleSubmit() {
   } finally {
     loading.value = false;
   }
+}
+
+// ── Google ────────────────────────────────────────────────────────────────────
+async function handleGoogleSuccess(credential: string) {
+  resetApiError();
+  localError.value = "";
+  successMsg.value = "";
+  loading.value = true;
+
+  try {
+    // El interceptor de api.js ya devuelve response.data.data = { access, refresh, user }.
+    // Tipado como any porque TS infiere AxiosResponse desde el JS del servicio.
+    const data: any = await authService.loginWithGoogle(credential);
+    authStore.setSession(data);
+    router.push({ name: "profile" });
+  } catch (err) {
+    handleApiError(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+function handleGoogleError(msg: string) {
+  localError.value = msg;
 }
 
 onBeforeUnmount(() => {
@@ -183,6 +211,16 @@ onBeforeUnmount(() => {
         <span aria-hidden="true">→</span>
       </button>
 
+      <div class="google-divider" role="separator">
+        <span>o regístrate con</span>
+      </div>
+
+      <GoogleAuthButton
+        text="signup_with"
+        @success="handleGoogleSuccess"
+        @error="handleGoogleError"
+      />
+
       <p class="register-copy">
         ¿Ya tienes una cuenta?
         <RouterLink :to="{ name: 'login' }">Inicia sesión</RouterLink>
@@ -190,3 +228,23 @@ onBeforeUnmount(() => {
     </AuthCard>
   </AuthShell>
 </template>
+
+<style scoped>
+.google-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.google-divider::before,
+.google-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.25;
+}
+</style>
