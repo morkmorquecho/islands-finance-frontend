@@ -11,6 +11,7 @@ const modal = computed(() => ui.modal)
 
 const isFormMode = computed(() => !!modal.value.formType)
 const isIslandInfoMode = computed(() => !!modal.value.islandId)
+const isMessageMode = computed(() => !isFormMode.value && !isIslandInfoMode.value)
 
 function handleOverlayClick() {
   ui.closeModal()
@@ -59,23 +60,36 @@ function handleModuleDeleted() {
     <Transition name="modal-fade">
       <div v-if="modal.show" class="modal-overlay" @click.self="handleOverlayClick">
         <Transition name="modal-pop" appear>
-          <div class="modal-card" :class="{ 'is-form': isFormMode, 'is-island-info': isIslandInfoMode }" role="dialog" aria-modal="true">
-
+          <div
+            class="modal-card"
+            :class="{
+              'is-form': isFormMode,
+              'is-island-info': isIslandInfoMode,
+              'is-message': isMessageMode,
+            }"
+            role="dialog"
+            aria-modal="true"
+          >
             <!-- ola decorativa: solo en modo mensaje -->
-            <div v-if="!isFormMode && !isIslandInfoMode" class="modal-wave-mask" aria-hidden="true">
+            <div v-if="isMessageMode" class="modal-wave-mask" aria-hidden="true">
               <svg class="modal-wave" viewBox="0 0 600 40" preserveAspectRatio="none">
                 <path d="M0,20 C100,40 200,0 300,20 C400,40 500,0 600,20 L600,0 L0,0 Z" />
               </svg>
             </div>
 
-            <button class="modal-close" type="button" aria-label="Cerrar" @click="ui.closeModal()">
+            <!-- botón cerrar: visible en todos los modos -->
+            <button
+              class="modal-close"
+              type="button"
+              aria-label="Cerrar"
+              @click="ui.closeModal()"
+            >
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
                 <path d="M5 5 L19 19 M19 5 L5 19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
               </svg>
             </button>
 
             <div class="modal-body">
-
               <!-- ── modo formulario ────────────────────────────── -->
               <template v-if="isFormMode">
                 <div class="form-header">
@@ -100,17 +114,16 @@ function handleModuleDeleted() {
                 />
               </template>
 
-                <IslandInfoModal
-                  v-else-if="isIslandInfoMode"
-                  :island-id="modal.islandId"
-                  @edit-island="handleIslandEdit"
-                  @deleted="handleIslandDeleted"
-                    @changed="handleIslandChanged"
-                />
+              <!-- ── modo info isla (componente autónomo) ────────── -->
+              <IslandInfoModal
+                v-else-if="isIslandInfoMode"
+                :island-id="modal.islandId"
+                @edit-island="handleIslandEdit"
+                @deleted="handleIslandDeleted"
+                @changed="handleIslandChanged"
+              />
 
-                
-
-              <!-- ── modo mensaje (comportamiento original) ─────── -->
+              <!-- ── modo mensaje ────────────────────────────────── -->
               <template v-else>
                 <h2 v-if="modal.title" class="modal-title">{{ modal.title }}</h2>
                 <p v-if="modal.message" class="modal-message">{{ modal.message }}</p>
@@ -180,6 +193,7 @@ function handleModuleDeleted() {
   width: min(560px, 100%);
   padding: 28px 28px 28px;
 }
+
 .modal-card.is-island-info {
   width: min(540px, 100%);
   padding: 0;
@@ -241,6 +255,7 @@ function handleModuleDeleted() {
 }
 
 .is-form .modal-body { padding-top: 0; gap: 20px; }
+.is-island-info .modal-body { padding-top: 0; gap: 0; }
 
 .form-header {
   display: flex;
