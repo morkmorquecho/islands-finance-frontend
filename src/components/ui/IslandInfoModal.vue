@@ -78,6 +78,11 @@ const {
     await loadIsland()
     emit('changed')
   },
+  getAvailableBalance: () => Number(valueBase.value ?? 0),
+  onSaved: async () => {
+    await loadIsland()
+    emit('changed')
+  },
 })
 
 /* ── Acciones de isla (editar / eliminar) ────────────────────── */
@@ -183,6 +188,7 @@ function deleteIsland() {
           @cancel-edit="cancelEditing"
           @save-edit="saveEdit"
           @load-more="loadMoreTransactions"
+          :available-balance="Number(valueBase ?? 0)"
         />
       </template>
     </div>

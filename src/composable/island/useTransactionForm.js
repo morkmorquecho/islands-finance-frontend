@@ -13,7 +13,15 @@ function transferDestinationId(transaction) {
   return transaction?.note?.match(/\[transfer:[^;\]]+;destination:([^\]]+)\]/)?.[1] ?? ''
 }
 
-export function useTransactionForm({ islandId, islandRef, isCashIsland, availableDestinations, currency, onSaved }) {
+export function useTransactionForm({
+  islandId,
+  islandRef,
+  isCashIsland,
+  availableDestinations,
+  currency,
+  getAvailableBalance,
+  onSaved,
+}) {
   const newTransaction = ref({
     type: 'deposit',
     date: new Date().toISOString().slice(0, 10),
@@ -38,6 +46,9 @@ export function useTransactionForm({ islandId, islandRef, isCashIsland, availabl
   const isTransfer = computed(() => newTransaction.value.type === 'withdrawal')
   const isEditingTransfer = computed(() => editingTransaction.value?.type === 'withdrawal')
 
+  /** Saldo disponible actual, en moneda base. */
+  const availableBalance = computed(() => Number(getAvailableBalance?.() ?? 0))
+
   function resetNewTransaction() {
     newTransaction.value = {
       type: isCashIsland.value ? 'deposit' : 'buy',
@@ -46,9 +57,60 @@ export function useTransactionForm({ islandId, islandRef, isCashIsland, availabl
     }
   }
 
+  /* ── Validación de saldo (nueva transacción) ─────────────── */
+
+  function validateNewDebit() {
+    const isDebit = newTransaction.value.type === 'expense' || newTransaction.value.type === 'withdrawal'
+    if (!isCashIsland.value || !isDebit) return true
+
+    const amount = Number(newTransaction.value.amount)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      transactionError.value = 'Ingresa un monto válido.'
+      return false
+    }
+    if (amount > availableBalance.value) {
+      transactionError.value = `El monto no puede superar el total disponible (${availableBalance.value.toFixed(2)} ${currency?.value ?? ''}).`.trim()
+      return false
+    }
+    return true
+  }
+
+  /* ── Validación de saldo (edición) ───────────────────────── */
+
+  function validateEditDebit() {
+    const original = editingTransaction.value
+    if (!original || !isCashIsland.value) return true
+
+    const isDebit = original.type === 'expense' || original.type === 'withdrawal'
+    if (!isDebit) return true
+
+    const newAmount = Number(editTransaction.value.amount)
+    const originalAmount = Number(original.amount) || 0
+
+    // El monto original ya está descontado del saldo actual: lo "devolvemos"
+    // virtualmente para no bloquear ediciones que en realidad son válidas.
+    const effectiveBalance = availableBalance.value + originalAmount
+
+    if (!Number.isFinite(newAmount) || newAmount <= 0) {
+      transactionError.value = 'Ingresa un monto válido.'
+      return false
+    }
+    if (newAmount > effectiveBalance) {
+      transactionError.value = `El monto no puede superar el total disponible (${effectiveBalance.toFixed(2)} ${currency?.value ?? ''}).`.trim()
+      return false
+    }
+    return true
+  }
+
   async function createTransaction() {
     savingTransaction.value = true
     transactionError.value = ''
+
+    if (!validateNewDebit()) {
+      savingTransaction.value = false
+      return
+    }
+
     let withdrawalCreated = false
     try {
       const payload = {
@@ -129,6 +191,12 @@ export function useTransactionForm({ islandId, islandRef, isCashIsland, availabl
     if (!original) return
     savingTransaction.value = true
     transactionError.value = ''
+
+    if (!validateEditDebit()) {
+      savingTransaction.value = false
+      return
+    }
+
     try {
       const payload = { date: editTransaction.value.date, note: editTransaction.value.note }
       if (isCashIsland.value) {
@@ -187,6 +255,7 @@ export function useTransactionForm({ islandId, islandRef, isCashIsland, availabl
     newTransaction, editingTransaction, editTransaction,
     savingTransaction, transactionError,
     isExpense, isTransfer, isEditingTransfer,
+    availableBalance,
     resetNewTransaction, createTransaction,
     startEditing, cancelEditing, saveEdit,
     transferDestinationId,

@@ -17,6 +17,8 @@ const props = defineProps({
   transactionError: { type: String, default: '' },
   hasMoreTransactions: { type: Boolean, default: false },
   loadingMoreTransactions: { type: Boolean, default: false },
+  availableBalance: { type: Number, default: 0 },
+  currency: { type: String, default: 'MXN' },
 })
 
 const emit = defineEmits([
@@ -60,12 +62,15 @@ function updateFilter(field, value) {
       :edit-transaction="editTransaction"
       :is-cash-island="isCashIsland"
       :island-currency="islandCurrency"
+      :currency="currency"  
       :available-destinations="availableDestinations"
       :saving-transaction="savingTransaction"
       :transaction-error="transactionError"
+      :available-balance="availableBalance"
       @update:edit-transaction="$emit('update:editTransaction', $event)"
       @submit="$emit('save-edit')"
       @cancel="$emit('cancel-edit')"
+      
     />
 
     <ul v-if="transactions.length">
