@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import transactionsService from '@/services/transactions.service'
+import { todayLocal } from '@/utils/date'
 
 function createTransferId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -24,7 +25,7 @@ export function useTransactionForm({
 }) {
   const newTransaction = ref({
     type: 'deposit',
-    date: new Date().toISOString().slice(0, 10),
+    date: todayLocal(),
     amount: '',
     quantity: '',
     price_at_tx: '',
@@ -52,7 +53,7 @@ export function useTransactionForm({
   function resetNewTransaction() {
     newTransaction.value = {
       type: isCashIsland.value ? 'deposit' : 'buy',
-      date: new Date().toISOString().slice(0, 10),
+      date: todayLocal(),
       amount: '', quantity: '', price_at_tx: '', category: '', note: '', destinationIslandId: '',
     }
   }
