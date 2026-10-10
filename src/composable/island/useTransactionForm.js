@@ -1,7 +1,6 @@
 import { ref, computed } from 'vue'
 import transactionsService from '@/services/transactions.service'
-import { todayLocal } from '@/utils/date'
-
+import { todayLocal, validateNotFutureDate } from '@/utils/date'
 function createTransferId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
@@ -103,9 +102,16 @@ export function useTransactionForm({
     return true
   }
 
-  async function createTransaction() {
+async function createTransaction() {
     savingTransaction.value = true
     transactionError.value = ''
+
+    const dateError = validateNotFutureDate(newTransaction.value.date)
+    if (dateError) {
+      transactionError.value = dateError
+      savingTransaction.value = false
+      return
+    }
 
     if (!validateNewDebit()) {
       savingTransaction.value = false
@@ -192,6 +198,13 @@ export function useTransactionForm({
     if (!original) return
     savingTransaction.value = true
     transactionError.value = ''
+
+    const dateError = validateNotFutureDate(editTransaction.value.date)
+    if (dateError) {
+      transactionError.value = dateError
+      savingTransaction.value = false
+      return
+    }
 
     if (!validateEditDebit()) {
       savingTransaction.value = false

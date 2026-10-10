@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { CASH_TYPES, ASSET_TYPES, CATEGORIES } from '@/composable/island/useTransactionConstants'
 import { formatAmount } from '@/composable/island/useFormatters'
+import { todayLocal } from '@/utils/date'
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -69,7 +70,7 @@ function update(field, value) {
 
       <label>
         <span>Fecha</span>
-        <input :value="modelValue.date" @input="update('date', $event.target.value)" type="date" required />
+        <input :value="modelValue.date" @input="update('date', $event.target.value)" type="date" required  :max="todayLocal()"/>
       </label>
 
       <label v-if="isCashIsland">

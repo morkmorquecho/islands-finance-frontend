@@ -8,3 +8,10 @@ export function toLocalDateString(date = new Date()) {
 export function todayLocal() {
   return toLocalDateString(new Date())
 }
+
+/** Devuelve un mensaje de error, o '' si la fecha es válida. */
+export function validateNotFutureDate(dateStr) {
+  if (!dateStr) return 'Selecciona una fecha.'
+  if (dateStr > todayLocal()) return 'La fecha no puede ser posterior a hoy.'
+  return ''
+}
