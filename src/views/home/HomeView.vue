@@ -12,9 +12,9 @@ import { useUIStore } from "@/stores/ui";
 import { useAuthStore } from "@/stores/auth";
 import modulesService from "@/services/modules.service";
 import islandsService from "@/services/islands.service";
-
+import TelegramConnect from "@/components/TelegramConnect.vue";
 import type { IslandAccount } from "../../types/brand-tints";
-
+const showTelegram = ref(false);
 type ChartEntry = {
   id: string;
   name: string;
@@ -176,7 +176,9 @@ function closeIntroduction() {
 }
 
 function onIntroductionKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape") closeIntroduction();
+  if (event.key !== "Escape") return;
+  if (showTelegram.value) closeTelegram();
+  else if (showIntroduction.value) closeIntroduction();
 }
 
 const chartModules = computed(() =>
@@ -300,6 +302,16 @@ onUnmounted(() => {
   window.removeEventListener("scroll", onScroll);
   window.removeEventListener("resize", onScroll);
 });
+
+function openTelegram() {
+  showTelegram.value = true;
+}
+
+function closeTelegram() {
+  showTelegram.value = false;
+}
+
+
 </script>
 
 <template>
@@ -331,6 +343,29 @@ onUnmounted(() => {
             <RouterLink class="profile-button" :to="{ name: 'settings' }">
               {{ userInitials || "•" }}
             </RouterLink>
+
+            <button
+              class="help-button"
+              type="button"
+              aria-label="Conectar Telegram"
+              title="Registra gastos desde Telegram"
+              @click="openTelegram"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
           </div>
       </header>
 
@@ -455,6 +490,24 @@ onUnmounted(() => {
             <button class="map-primary-button" type="button" @click="closeIntroduction">
               Comenzar la exploración
             </button>
+          </section>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <Teleport to="body">
+      <Transition name="map-modal">
+        <div
+          v-if="showTelegram"
+          class="map-modal-backdrop"
+          role="presentation"
+          @click.self="closeTelegram"
+        >
+          <section class="telegram-modal" role="dialog" aria-modal="true" aria-label="Conectar Telegram">
+            <button class="modal-close" type="button" aria-label="Cerrar" @click="closeTelegram">
+              ×
+            </button>
+            <TelegramConnect />
           </section>
         </div>
       </Transition>
@@ -917,6 +970,39 @@ onUnmounted(() => {
   .map-modal-leave-active,
   .map-modal-enter-active .pirate-map-modal,
   .map-modal-leave-active .pirate-map-modal {
+    transition: none;
+  }
+}
+
+.telegram-modal {
+  position: relative;
+  width: min(420px, 100%);
+  max-height: min(720px, calc(100svh - 40px));
+  overflow: auto;
+  padding: clamp(24px, 5vw, 36px);
+  color: var(--label-ink);
+  background: var(--label);
+  border: 1px solid color-mix(in oklab, var(--foreground) 20%, transparent);
+  border-radius: var(--radius);
+  box-shadow: 0 22px 80px rgb(0 0 0 / 34%);
+}
+
+.map-modal-enter-active .telegram-modal,
+.map-modal-leave-active .telegram-modal {
+  transition:
+    transform 0.25s ease,
+    opacity 0.2s ease;
+}
+
+.map-modal-enter-from .telegram-modal,
+.map-modal-leave-to .telegram-modal {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-modal-enter-active .telegram-modal,
+  .map-modal-leave-active .telegram-modal {
     transition: none;
   }
 }
