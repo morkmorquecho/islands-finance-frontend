@@ -345,26 +345,13 @@ function closeTelegram() {
             </RouterLink>
 
             <button
-              class="help-button"
+              class="help-button telegram-button"
               type="button"
               aria-label="Conectar Telegram"
               title="Registra gastos desde Telegram"
               @click="openTelegram"
             >
-              <svg
-                viewBox="0 0 24 24"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
+              <img src="@/assets/telegram.png" alt="" aria-hidden="true" />
             </button>
           </div>
       </header>
@@ -1005,5 +992,17 @@ function closeTelegram() {
   .map-modal-leave-active .telegram-modal {
     transition: none;
   }
+}
+.telegram-button {
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.telegram-button img {
+  display: block;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 </style>
