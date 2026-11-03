@@ -266,7 +266,6 @@ onMounted(() => {
         <div class="input-shell">
           <select id="module-type" v-model="moduleForm.type">
             <option v-for="opt in TYPE_PRESETS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-            <option value="other">Otro</option>
           </select>
         </div>
       </div>
